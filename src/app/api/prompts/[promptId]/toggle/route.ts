@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 
-export async function POST(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
-  const params = await props.params;
-  const id = params.promptId;
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ promptId: string }> }
+) {
+  const { promptId: id } = await params;
   const prompt = await db.prompt.findUnique({
     where: { id },
   });
