@@ -1,3 +1,5 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/prisma";
 import { addMinutes } from "date-fns";
 
 export const dynamic = "force-dynamic";

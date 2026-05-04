@@ -46,7 +46,7 @@ export function PromptForm({ initialData, isEdit }: PromptFormProps) {
   const toggleDay = (day: number) => {
     let newDays;
     if (selectedDays.includes(day)) {
-      newDays = selectedDays.filter(d => d !== day);
+      newDays = selectedDays.filter((d: number) => d !== day);
     } else {
       newDays = [...selectedDays, day];
     }

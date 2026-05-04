@@ -1,4 +1,5 @@
 import { db } from "@/lib/prisma";
+import { Prompt } from "@prisma/client";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -9,7 +10,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  const prompts = await db.prompt.findMany({
+  const prompts: Prompt[] = await db.prompt.findMany({
     orderBy: { createdAt: "desc" },
   });
 
@@ -47,7 +48,7 @@ export default async function Dashboard() {
             <span style={{ fontWeight: 600 }}>Activos</span>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-            {prompts.filter(p => p.enabled).length}
+            {prompts.filter((p: Prompt) => p.enabled).length}
           </div>
         </div>
 
@@ -57,7 +58,7 @@ export default async function Dashboard() {
             <span style={{ fontWeight: 600 }}>Próximas 24h</span>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-            {prompts.filter(p => {
+            {prompts.filter((p: Prompt) => {
               const tomorrow = new Date();
               tomorrow.setDate(tomorrow.getDate() + 1);
               return p.enabled && new Date(p.nextExecutionAt) <= tomorrow;
@@ -80,7 +81,7 @@ export default async function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {prompts.map((prompt) => (
+              {prompts.map((prompt: Prompt) => (
                 <tr key={prompt.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
