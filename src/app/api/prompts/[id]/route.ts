@@ -7,9 +7,9 @@ export const revalidate = 0;
 // GET /api/prompts/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   return NextResponse.json(prompt, {
     headers: {
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -22,9 +22,9 @@ export async function GET(
 // PATCH /api/prompts/[id] -> For editing
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   const data = await request.json();
 
   const config: ScheduleConfig = {
@@ -53,11 +53,11 @@ export async function PATCH(
 // POST /api/prompts/[id] -> For results (The Pi uses the slug as 'id' here)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
-  const { id: idOrSlug } = await params;
+  const { id: idOrSlug } = await context.params;
 
   // Check password
   if (password !== process.env.API_PASSWORD) {
@@ -106,9 +106,9 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   await db.prompt.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }

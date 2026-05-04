@@ -3,9 +3,9 @@ import { db } from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   const prompt = await db.prompt.findUnique({
     where: { id },
   });
