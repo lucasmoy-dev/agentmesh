@@ -1,0 +1,34 @@
+[
+  {
+    "id": "test-id",
+    "name": "Prueba de Simulación",
+    "slug": "test",
+    "content": "Este es un prompt de prueba en modo Mock.",
+    "enabled": true,
+    "scheduleType": "WEEKLY",
+    "scheduleTime": "05:00",
+    "scheduleDays": "1,4,0",
+    "scheduleDate": null,
+    "nextExecutionAt": "2026-05-04T21:43:11.168Z",
+    "lastExecutedAt": null,
+    "lastResult": null,
+    "createdAt": "2026-05-04T22:49:00.000Z",
+    "updatedAt": "2026-05-04T21:38:11.168Z"
+  },
+  {
+    "id": "o421dm4tv",
+    "name": "test",
+    "slug": "test",
+    "content": "traer 3 noticias",
+    "enabled": true,
+    "scheduleType": "MONTHLY",
+    "scheduleTime": "05:00",
+    "scheduleDays": "1,4,0",
+    "scheduleDate": 23,
+    "nextExecutionAt": "2026-05-23T03:00:00.000Z",
+    "lastExecutedAt": null,
+    "lastResult": null,
+    "createdAt": "2026-05-04T21:02:52.760Z",
+    "updatedAt": "2026-05-04T21:34:49.527Z"
+  }
+]

@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Prompt {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  content         String   @db.Text
+  enabled         Boolean  @default(true)
+  
+  // Scheduling
+  scheduleType    String   // "SINGLE", "WEEKLY", "MONTHLY", "YEARLY", "INTERVAL"
+  scheduleDays    String?  // Comma separated: "1,4,0"
+  scheduleTime    String   // "HH:mm"
+  scheduleDate    Int?     // Day of month (1-31)
+  scheduleMonth   Int?     // Month (0-11) for yearly
+  
+  // Interval mode
+  intervalValue   Int?
+  intervalUnit    String?  // "seconds", "minutes", "hours"
+  
+  nextExecutionAt DateTime @default(now())
+  lastExecutedAt  DateTime?
+  lastResult      String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
