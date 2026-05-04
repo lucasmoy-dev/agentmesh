@@ -6,11 +6,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // GET /api/prompts/[id]
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
+export async function GET(request: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
+  
   const prompt = await db.prompt.findUnique({
     where: { id },
   });
@@ -24,12 +23,10 @@ export async function GET(
   });
 }
 
-// PATCH /api/prompts/[id] -> For editing
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
+// PATCH /api/prompts/[id]
+export async function PATCH(request: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
   const data = await request.json();
 
   const config: ScheduleConfig = {
@@ -55,16 +52,14 @@ export async function PATCH(
   return NextResponse.json(updated);
 }
 
-// POST /api/prompts/[id] -> For results (The Pi uses the slug as 'id' here)
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+// POST /api/prompts/[id]
+export async function POST(request: NextRequest, context: any) {
+  const params = await context.params;
+  const idOrSlug = params.id;
+  
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
-  const { id: idOrSlug } = await context.params;
 
-  // Check password
   if (password !== process.env.API_PASSWORD) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
@@ -72,7 +67,6 @@ export async function POST(
   const body = await request.json();
   const { result } = body;
 
-  // Try to find by ID or Slug
   const prompt = await db.prompt.findUnique({
     where: idOrSlug.length > 20 ? { id: idOrSlug } : { slug: idOrSlug },
   });
@@ -82,8 +76,6 @@ export async function POST(
   }
 
   const now = new Date();
-  
-  // Calculate real next execution
   const config: ScheduleConfig = {
     type: prompt.scheduleType as ScheduleType,
     days: prompt.scheduleDays ? prompt.scheduleDays.split(",").map(Number) : undefined,
@@ -109,11 +101,10 @@ export async function POST(
   return NextResponse.json({ success: true, nextExecutionAt: nextExecution });
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
+// DELETE /api/prompts/[id]
+export async function DELETE(request: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
   await db.prompt.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }
