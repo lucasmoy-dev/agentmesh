@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { calculateNextExecution, ScheduleConfig, ScheduleType } from "@/lib/scheduler";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
-  const params = await props.params;
-  const promptId = params.promptId;
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ promptId: string }> }
+) {
+  const { promptId } = await params;
   
   const prompt = await db.prompt.findUnique({
     where: { id: promptId },
@@ -22,10 +24,12 @@ export async function GET(request: NextRequest, props: { params: Promise<{ promp
   });
 }
 
-export async function PATCH(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
-  const params = await props.params;
-  const promptId = params.promptId;
-  const data = await request.json();
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ promptId: string }> }
+) {
+  const { promptId } = await params;
+  const data = await (request as any).json();
 
   const config: ScheduleConfig = {
     type: data.scheduleType as ScheduleType,
@@ -50,9 +54,11 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ pro
   return NextResponse.json(updated);
 }
 
-export async function POST(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
-  const params = await props.params;
-  const identifier = params.promptId;
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ promptId: string }> }
+) {
+  const { promptId: identifier } = await params;
   
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ prom
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await (request as any).json();
   const { result } = body;
 
   const prompt = await db.prompt.findUnique({
@@ -98,9 +104,11 @@ export async function POST(request: NextRequest, props: { params: Promise<{ prom
   return NextResponse.json({ success: true, nextExecutionAt: nextExecution });
 }
 
-export async function DELETE(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
-  const params = await props.params;
-  const promptId = params.promptId;
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ promptId: string }> }
+) {
+  const { promptId } = await params;
   await db.prompt.delete({ where: { id: promptId } });
   return new NextResponse(null, { status: 204 });
 }
