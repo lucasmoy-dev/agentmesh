@@ -5,13 +5,12 @@ import { calculateNextExecution, ScheduleConfig, ScheduleType } from "@/lib/sche
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// GET /api/prompts/[id]
-export async function GET(request: NextRequest, context: any) {
-  const params = await context.params;
-  const id = params.id;
+export async function GET(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
+  const params = await props.params;
+  const promptId = params.promptId;
   
   const prompt = await db.prompt.findUnique({
-    where: { id },
+    where: { id: promptId },
   });
 
   return NextResponse.json(prompt, {
@@ -23,10 +22,9 @@ export async function GET(request: NextRequest, context: any) {
   });
 }
 
-// PATCH /api/prompts/[id]
-export async function PATCH(request: NextRequest, context: any) {
-  const params = await context.params;
-  const id = params.id;
+export async function PATCH(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
+  const params = await props.params;
+  const promptId = params.promptId;
   const data = await request.json();
 
   const config: ScheduleConfig = {
@@ -42,7 +40,7 @@ export async function PATCH(request: NextRequest, context: any) {
   const nextExecutionAt = calculateNextExecution(config);
 
   const updated = await db.prompt.update({
-    where: { id },
+    where: { id: promptId },
     data: {
       ...data,
       nextExecutionAt,
@@ -52,10 +50,9 @@ export async function PATCH(request: NextRequest, context: any) {
   return NextResponse.json(updated);
 }
 
-// POST /api/prompts/[id]
-export async function POST(request: NextRequest, context: any) {
-  const params = await context.params;
-  const idOrSlug = params.id;
+export async function POST(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
+  const params = await props.params;
+  const identifier = params.promptId;
   
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest, context: any) {
   const { result } = body;
 
   const prompt = await db.prompt.findUnique({
-    where: idOrSlug.length > 20 ? { id: idOrSlug } : { slug: idOrSlug },
+    where: identifier.length > 20 ? { id: identifier } : { slug: identifier },
   });
 
   if (!prompt) {
@@ -101,10 +98,9 @@ export async function POST(request: NextRequest, context: any) {
   return NextResponse.json({ success: true, nextExecutionAt: nextExecution });
 }
 
-// DELETE /api/prompts/[id]
-export async function DELETE(request: NextRequest, context: any) {
-  const params = await context.params;
-  const id = params.id;
-  await db.prompt.delete({ where: { id } });
+export async function DELETE(request: NextRequest, props: { params: Promise<{ promptId: string }> }) {
+  const params = await props.params;
+  const promptId = params.promptId;
+  await db.prompt.delete({ where: { id: promptId } });
   return new NextResponse(null, { status: 204 });
 }
