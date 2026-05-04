@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { calculateNextExecution, ScheduleConfig, ScheduleType } from "@/lib/scheduler";
 
@@ -10,6 +11,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const prompt = await db.prompt.findUnique({
+    where: { id },
+  });
+
   return NextResponse.json(prompt, {
     headers: {
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
