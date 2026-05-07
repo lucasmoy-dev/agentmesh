@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (!prompt) {
-    return new NextResponse("", { status: 204 });
+    return new NextResponse(null, { status: 204 });
   }
 
   // Temporarily bump nextExecutionAt to prevent other workers/polls from picking it up
