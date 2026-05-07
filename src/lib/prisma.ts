@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { memoryDb } from "./memoryDb";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient | null };
@@ -6,13 +8,20 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient | null };
 let prisma: any = null;
 
 if (process.env.USE_MOCK !== "true") {
-  prisma =
-    globalForPrisma.prisma ||
-    new PrismaClient({
-      log: ["query"],
+  if (globalForPrisma.prisma) {
+    prisma = globalForPrisma.prisma;
+  } else {
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const adapter = new PrismaPg(pool);
+    prisma = new PrismaClient({ 
+      adapter,
+      log: ["query"]
     });
-
-  if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+    
+    if (process.env.NODE_ENV !== "production") {
+      globalForPrisma.prisma = prisma;
+    }
+  }
 }
 
 // Export the database interface

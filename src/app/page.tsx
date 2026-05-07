@@ -120,7 +120,7 @@ export default async function Dashboard() {
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                       <PromptActions 
-                        promptId={prompt.id}
+                        id={prompt.id}
                         slug={prompt.slug}
                         enabled={prompt.enabled}
                         lastResult={prompt.lastResult}

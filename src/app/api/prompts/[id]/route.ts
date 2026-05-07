@@ -7,12 +7,12 @@ export const revalidate = 0;
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ promptId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { promptId } = await params;
+  const { id } = await params;
   
   const prompt = await db.prompt.findUnique({
-    where: { id: promptId },
+    where: { id },
   });
 
   return NextResponse.json(prompt, {
@@ -26,9 +26,9 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ promptId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { promptId } = await params;
+  const { id } = await params;
   const data = await (request as any).json();
 
   const config: ScheduleConfig = {
@@ -44,7 +44,7 @@ export async function PATCH(
   const nextExecutionAt = calculateNextExecution(config);
 
   const updated = await db.prompt.update({
-    where: { id: promptId },
+    where: { id },
     data: {
       ...data,
       nextExecutionAt,
@@ -56,9 +56,9 @@ export async function PATCH(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ promptId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { promptId: identifier } = await params;
+  const { id: identifier } = await params;
   
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
@@ -106,9 +106,9 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ promptId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { promptId } = await params;
-  await db.prompt.delete({ where: { id: promptId } });
+  const { id } = await params;
+  await db.prompt.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }

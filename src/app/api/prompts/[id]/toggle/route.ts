@@ -3,12 +3,11 @@ import { db } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ promptId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { promptId: id } = await params;
-  
+  const { id } = await params;
   const prompt = await db.prompt.findUnique({
-    where: id.length > 20 ? { id } : { slug: id },
+    where: { id },
   });
 
   if (!prompt) {
@@ -16,11 +15,8 @@ export async function POST(
   }
 
   const updated = await db.prompt.update({
-    where: { id: prompt.id },
-    data: { 
-      nextExecutionAt: new Date(),
-      enabled: true 
-    },
+    where: { id },
+    data: { enabled: !prompt.enabled },
   });
 
   return NextResponse.json(updated);

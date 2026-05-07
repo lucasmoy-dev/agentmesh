@@ -5,13 +5,13 @@ import { Play, Eye, Power, PowerOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface PromptActionsProps {
-  promptId: string;
+  id: string;
   slug: string;
   enabled: boolean;
   lastResult: string | null;
 }
 
-export function PromptActions({ promptId, slug, enabled, lastResult }: PromptActionsProps) {
+export function PromptActions({ id, slug, enabled, lastResult }: PromptActionsProps) {
   const [loading, setLoading] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -20,7 +20,7 @@ export function PromptActions({ promptId, slug, enabled, lastResult }: PromptAct
   const handleToggle = async () => {
     setIsToggling(true);
     try {
-      const res = await fetch(`/api/prompts/${promptId}/toggle`, { method: "POST" });
+      const res = await fetch(`/api/prompts/${id}/toggle`, { method: "POST" });
       if (res.ok) router.refresh();
     } finally {
       setIsToggling(false);
@@ -32,7 +32,7 @@ export function PromptActions({ promptId, slug, enabled, lastResult }: PromptAct
     setLoading(true);
     try {
       // 1. Get current nextExecutionAt to compare later
-      const initialRes = await fetch(`/api/prompts/${promptId}`);
+      const initialRes = await fetch(`/api/prompts/${id}`);
       const initialData = await initialRes.json();
       const oldNextExecution = initialData.nextExecutionAt;
 
@@ -41,7 +41,7 @@ export function PromptActions({ promptId, slug, enabled, lastResult }: PromptAct
 
       // 3. Poll until nextExecutionAt changes (meaning the Pi reported results)
       const poll = async () => {
-        const res = await fetch(`/api/prompts/${promptId}`);
+        const res = await fetch(`/api/prompts/${id}`);
         const data = await res.json();
         
         if (data.nextExecutionAt !== oldNextExecution) {
