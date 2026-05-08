@@ -5,7 +5,7 @@ import { memoryDb } from "./memoryDb";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-let prisma: PrismaClient;
+let prisma: PrismaClient = undefined as any;
 
 if (process.env.USE_MOCK !== "true") {
   if (globalForPrisma.prisma) {

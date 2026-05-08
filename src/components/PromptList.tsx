@@ -31,11 +31,11 @@ interface Prompt {
   enabled: boolean;
   scheduleType: string;
   scheduleTime: string;
-  intervalValue?: number;
-  intervalUnit?: string;
+  intervalValue: number | null;
+  intervalUnit: string | null;
   nextExecutionAt: string;
-  lastExecutedAt?: string;
-  lastResult?: string;
+  lastExecutedAt: string | null;
+  lastResult: string | null;
 }
 
 interface SortableItemProps {

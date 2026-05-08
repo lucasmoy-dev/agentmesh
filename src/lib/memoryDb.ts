@@ -60,6 +60,7 @@ export const memoryDb = {
         nextExecutionAt: data.nextExecutionAt || new Date(),
         lastExecutedAt: null,
         lastResult: null,
+        order: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

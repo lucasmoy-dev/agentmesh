@@ -67,6 +67,7 @@ export function PromptForm({ initialData, isEdit }: PromptFormProps) {
 
   const handleDelete = async () => {
     if (!confirm("¿Estás seguro de que quieres eliminar este prompt? Esta acción no se puede deshacer.")) return;
+    if (!initialData?.id) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/prompts/${initialData.id}`, { method: "DELETE" });
@@ -84,7 +85,12 @@ export function PromptForm({ initialData, isEdit }: PromptFormProps) {
     setLoading(true);
 
     try {
-      const url = isEdit ? `/api/prompts/${initialData.id}` : "/api/prompts";
+      const promptId = initialData?.id;
+      if (isEdit && !promptId) {
+        throw new Error("No se encontró el ID del prompt para editar.");
+      }
+      
+      const url = isEdit ? `/api/prompts/${promptId}` : "/api/prompts";
       const method = isEdit ? "PATCH" : "POST";
 
       const res = await fetch(url, {
