@@ -130,7 +130,6 @@ export function PromptForm({ initialData, isEdit }: PromptFormProps) {
               type="text"
               className="input"
               required
-              disabled={isEdit}
               placeholder="ej-reporte"
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}

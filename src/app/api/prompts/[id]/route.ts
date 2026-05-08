@@ -10,10 +10,25 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const password = searchParams.get("password");
+
+  if (password !== process.env.API_PASSWORD) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
   
-  const prompt = await db.prompt.findUnique({
-    where: { id },
+  const prompt = await db.prompt.findFirst({
+    where: {
+      OR: [
+        { id: id },
+        { slug: id }
+      ]
+    },
   });
+
+  if (!prompt) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   return NextResponse.json(prompt, {
     headers: {
@@ -31,6 +46,17 @@ export async function PATCH(
   const { id } = await params;
   const data = await (request as any).json();
 
+  // Buscar por ID o Slug para obtener el ID real
+  const existingPrompt = await db.prompt.findFirst({
+    where: {
+      OR: [{ id: id }, { slug: id }]
+    }
+  });
+
+  if (!existingPrompt) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   const config: ScheduleConfig = {
     type: data.scheduleType as ScheduleType,
     time: data.scheduleTime,
@@ -44,7 +70,7 @@ export async function PATCH(
   const nextExecutionAt = calculateNextExecution(config);
 
   const updated = await db.prompt.update({
-    where: { id },
+    where: { id: existingPrompt.id },
     data: {
       ...data,
       nextExecutionAt,
@@ -70,8 +96,13 @@ export async function POST(
   const body = await (request as any).json();
   const { result } = body;
 
-  const prompt = await db.prompt.findUnique({
-    where: identifier.length > 20 ? { id: identifier } : { slug: identifier },
+  const prompt = await db.prompt.findFirst({
+    where: {
+      OR: [
+        { id: identifier },
+        { slug: identifier }
+      ]
+    },
   });
 
   if (!prompt) {
@@ -109,6 +140,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await db.prompt.delete({ where: { id } });
+  
+  // Buscar por ID o Slug
+  const existingPrompt = await db.prompt.findFirst({
+    where: {
+      OR: [{ id: id }, { slug: id }]
+    }
+  });
+
+  if (!existingPrompt) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
+  await db.prompt.delete({ where: { id: existingPrompt.id } });
   return new NextResponse(null, { status: 204 });
 }

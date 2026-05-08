@@ -4,8 +4,13 @@ import { notFound } from "next/navigation";
 
 export default async function EditPromptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const prompt = await db.prompt.findUnique({
-    where: { id },
+  const prompt = await db.prompt.findFirst({
+    where: {
+      OR: [
+        { id: id },
+        { slug: id }
+      ]
+    },
   });
 
   if (!prompt) {
