@@ -81,6 +81,6 @@ export const memoryDb = {
       const filtered = allPrompts.filter(p => p.id !== where.id);
       saveData(filtered);
     },
-    $transaction: async (items: any[]) => items,
-  }
+  },
+  $transaction: async (items: any[]) => Promise.all(items),
 };
