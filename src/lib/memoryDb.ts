@@ -24,24 +24,25 @@ function saveData(data: Prompt[]) {
 
 export const memoryDb = {
   prompt: {
-    findMany: async (args: any) => {
+    findMany: async (args?: any) => {
       const data = readData();
       if (args?.orderBy?.createdAt === "desc") {
         return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
       return data;
     },
-    findUnique: async ({ where }: { where: { id?: string; slug?: string } }) => {
+    findUnique: async (args?: any) => {
+      const { where } = args || {};
       const data = readData();
-      return data.find(p => p.id === where.id || p.slug === where.slug) || null;
+      return data.find((p: any) => p.id === where?.id || p.slug === where?.slug) || null;
     },
-    findFirst: async ({ where }: { where: any }) => {
+    findFirst: async (args?: any) => {
       const data = readData();
       const now = new Date();
-      // Simple filter for enabled and due
-      return data.find(p => p.enabled && new Date(p.nextExecutionAt) <= now) || null;
+      return data.find((p: any) => p.enabled && new Date(p.nextExecutionAt) <= now) || null;
     },
-    create: async ({ data }: { data: any }) => {
+    create: async (args?: any) => {
+      const { data } = args || {};
       const allPrompts = readData();
       const newPrompt: Prompt = {
         id: Math.random().toString(36).substr(2, 9),
@@ -66,7 +67,8 @@ export const memoryDb = {
       saveData(allPrompts);
       return newPrompt;
     },
-    update: async ({ where, data }: { where: { id?: string; slug?: string }; data: any }) => {
+    update: async (args?: any) => {
+      const { where, data } = args || {};
       const allPrompts = readData();
       const index = allPrompts.findIndex(p => p.id === where.id || p.slug === where.slug);
       if (index !== -1) {
