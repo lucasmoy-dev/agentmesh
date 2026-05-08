@@ -78,9 +78,10 @@ export const memoryDb = {
       }
       throw new Error("Not found");
     },
-    delete: async ({ where }: { where: { id: string } }) => {
+    delete: async (args?: any) => {
+      const { where } = args || {};
       const allPrompts = readData();
-      const filtered = allPrompts.filter(p => p.id !== where.id);
+      const filtered = allPrompts.filter((p: any) => p.id !== where?.id);
       saveData(filtered);
     },
   },
