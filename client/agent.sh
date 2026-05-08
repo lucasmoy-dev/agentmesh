@@ -9,7 +9,7 @@
 
 # Configuración
 API_URL="https://agentmesh-ruddy.vercel.app"
-API_KEY='d7936102a0a2f45532c253b890833a6f19488a0329b35ed8818f0f0891d4e785'
+API_KEY='f370146d4e4d840d8e42800d2cf5c096f396d6cbf5586cca2d0253d0cc90aad4'
 INTERVAL=15
 CLIENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

@@ -126,7 +126,11 @@ export function PromptList({ initialPrompts, apiKey }: { initialPrompts: Prompt[
   const [prompts, setPrompts] = useState(initialPrompts);
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
