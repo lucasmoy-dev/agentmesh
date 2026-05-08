@@ -3,9 +3,9 @@ import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { memoryDb } from "./memoryDb";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient | null };
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-let prisma: any = null;
+let prisma: PrismaClient;
 
 if (process.env.USE_MOCK !== "true") {
   if (globalForPrisma.prisma) {

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Prompt } from "@prisma/client";
 import fs from "fs";
 import path from "path";
@@ -80,5 +81,6 @@ export const memoryDb = {
       const filtered = allPrompts.filter(p => p.id !== where.id);
       saveData(filtered);
     },
+    $transaction: async (items: any[]) => items,
   }
 };

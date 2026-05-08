@@ -6,7 +6,19 @@ import { ArrowLeft, Save, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface PromptFormProps {
-  initialData?: any;
+  initialData?: {
+    id?: string;
+    name?: string;
+    slug?: string;
+    content?: string;
+    scheduleType?: string;
+    scheduleTime?: string;
+    scheduleDays?: string;
+    scheduleDate?: number;
+    scheduleMonth?: number;
+    intervalValue?: number;
+    intervalUnit?: string;
+  };
   isEdit?: boolean;
 }
 
@@ -181,7 +193,7 @@ export function PromptForm({ initialData, isEdit }: PromptFormProps) {
                 <select
                   className="select"
                   value={formData.intervalUnit}
-                  onChange={(e) => setFormData({ ...formData, intervalUnit: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, intervalUnit: e.target.value })}
                 >
                   <option value="seconds">Segundos</option>
                   <option value="minutes">Minutos</option>
