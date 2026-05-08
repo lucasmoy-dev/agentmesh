@@ -29,17 +29,9 @@ export async function GET(request: NextRequest) {
   });
 
   if (!prompt) {
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json({ status: "no_prompts_due" });
   }
 
-  // Temporarily bump nextExecutionAt to prevent other workers/polls from picking it up
-  // while the Pi is processing it.
-  await db.prompt.update({
-    where: { id: prompt.id },
-    data: {
-      nextExecutionAt: addMinutes(now, 5), // 5 minute lock
-    },
-  });
 
   return NextResponse.json({
     id: prompt.id,
