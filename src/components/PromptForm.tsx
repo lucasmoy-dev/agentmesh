@@ -7,17 +7,17 @@ import Link from "next/link";
 
 interface PromptFormProps {
   initialData?: {
-    id?: string;
-    name?: string;
-    slug?: string;
-    content?: string;
-    scheduleType?: string;
-    scheduleTime?: string;
-    scheduleDays?: string;
-    scheduleDate?: number;
-    scheduleMonth?: number;
-    intervalValue?: number;
-    intervalUnit?: string;
+    id?: string | null;
+    name?: string | null;
+    slug?: string | null;
+    content?: string | null;
+    scheduleType?: string | null;
+    scheduleTime?: string | null;
+    scheduleDays?: string | null;
+    scheduleDate?: number | null;
+    scheduleMonth?: number | null;
+    intervalValue?: number | null;
+    intervalUnit?: string | null;
   };
   isEdit?: boolean;
 }
