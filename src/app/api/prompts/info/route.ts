@@ -1,27 +1,33 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const info = `
-PROMPT API INFO
-===============
+  const info = {
+    name: "AgentMesh API",
+    version: "1.1.0",
+    auth: "SHA256 Hash required in 'password' query param",
+    endpoints: [
+      {
+        path: "/api/prompts/next",
+        method: "GET",
+        description: "Obtiene el próximo prompt pendiente de ejecución (formato JSON)."
+      },
+      {
+        path: "/api/prompts/[id_o_slug]",
+        method: "GET",
+        description: "Obtiene exclusivamente el CONTENIDO del prompt (texto plano)."
+      },
+      {
+        path: "/api/prompts/[id_o_slug]/result",
+        method: "GET",
+        description: "Obtiene exclusivamente el RESULTADO de la última ejecución (texto plano)."
+      },
+      {
+        path: "/api/prompts/[id]",
+        method: "POST",
+        description: "Reporta el resultado de una ejecución (JSON body: { result: string })."
+      }
+    ]
+  };
 
-1. GET /api/prompts/next?password=YOUR_PASSWORD
-   Returns the next prompt to execute.
-   Format: { id, slug, content }
-   Returns 204 No Content if nothing is ready.
-
-2. POST /api/prompts/[slug]?password=YOUR_PASSWORD
-   Saves the result of the prompt execution.
-   Body: { "result": "The result text..." }
-   Returns: { "success": true, "nextExecutionAt": "..." }
-
-3. GET /api/prompts/info
-   This information.
-  `.trim();
-
-  return new NextResponse(info, {
-    headers: {
-      "Content-Type": "text/plain",
-    },
-  });
+  return NextResponse.json(info);
 }

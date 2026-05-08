@@ -31,11 +31,7 @@ export async function GET(
     return new NextResponse("Error: Prompt no encontrado.", { status: 404 });
   }
 
-  const resultText = prompt.lastResult && prompt.lastResult !== "null" 
-    ? String(prompt.lastResult) 
-    : "Aún no hay resultados para este prompt. Ejecútalo desde el panel o espera a su programación.";
-
-  return new NextResponse(resultText, {
+  return new NextResponse(prompt.content, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
