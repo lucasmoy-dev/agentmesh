@@ -5,8 +5,7 @@ import { cookies } from "next/headers";
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
-    
-    // SHA-256 for 'Smartwatch0!'
+
     const targetHash = "f370146d4e4d840d8e42800d2cf5c096f396d6cbf5586cca2d0253d0cc90aad4";
     const currentHash = crypto.createHash('sha256').update(password).digest('hex');
 

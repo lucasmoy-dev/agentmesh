@@ -9,9 +9,10 @@ interface PromptActionsProps {
   slug: string;
   enabled: boolean;
   lastResult: string | null;
+  apiKey: string;
 }
 
-export function PromptActions({ id, slug, enabled, lastResult }: PromptActionsProps) {
+export function PromptActions({ id, slug, enabled, lastResult, apiKey }: PromptActionsProps) {
   const [loading, setLoading] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -32,7 +33,7 @@ export function PromptActions({ id, slug, enabled, lastResult }: PromptActionsPr
     setLoading(true);
     try {
       // 1. Get current nextExecutionAt to compare later
-      const initialRes = await fetch(`/api/prompts/${id}`);
+      const initialRes = await fetch(`/api/prompts/${id}?password=${apiKey}`);
       const initialData = await initialRes.json();
       const oldNextExecution = initialData.nextExecutionAt;
 
@@ -41,7 +42,7 @@ export function PromptActions({ id, slug, enabled, lastResult }: PromptActionsPr
 
       // 3. Poll until nextExecutionAt changes (meaning the Pi reported results)
       const poll = async () => {
-        const res = await fetch(`/api/prompts/${id}`);
+        const res = await fetch(`/api/prompts/${id}?password=${apiKey}`);
         const data = await res.json();
         
         if (data.nextExecutionAt !== oldNextExecution) {

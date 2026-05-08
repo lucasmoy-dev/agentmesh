@@ -32,6 +32,7 @@ model Prompt {
   nextExecutionAt DateTime @default(now())
   lastExecutedAt  DateTime?
   lastResult      String?  @db.Text
+  order           Int      @default(0)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
 
-  if (password !== process.env.API_PASSWORD) {
+  if (password !== process.env.API_KEY_HASH) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
@@ -23,9 +23,10 @@ export async function GET(request: NextRequest) {
         lte: now,
       },
     },
-    orderBy: {
-      nextExecutionAt: "asc",
-    },
+    orderBy: [
+      { order: "asc" },
+      { nextExecutionAt: "asc" }
+    ],
   });
 
   if (!prompt) {

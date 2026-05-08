@@ -13,7 +13,7 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
 
-  if (password !== process.env.API_PASSWORD) {
+  if (password !== process.env.API_KEY_HASH) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
   
@@ -30,8 +30,9 @@ export async function GET(
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  return NextResponse.json(prompt, {
+  return new NextResponse(prompt.lastResult || "", {
     headers: {
+      "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
       "Pragma": "no-cache",
       "Expires": "0",
@@ -89,7 +90,7 @@ export async function POST(
   const { searchParams } = new URL(request.url);
   const password = searchParams.get("password");
 
-  if (password !== process.env.API_PASSWORD) {
+  if (password !== process.env.API_KEY_HASH) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

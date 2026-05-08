@@ -9,7 +9,7 @@
 
 # Configuración
 API_URL="https://agentmesh-ruddy.vercel.app"
-API_PASSWORD='Smartwatch0!'
+API_KEY='d7936102a0a2f45532c253b890833a6f19488a0329b35ed8818f0f0891d4e785'
 INTERVAL=15
 CLIENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -79,7 +79,7 @@ while true; do
             }
         }
         run();
-    " "$API_URL" "$API_PASSWORD" | tee -a agent.log
+    " "$API_URL" "$API_KEY" | tee -a agent.log
 
     echo "Esperando ${INTERVAL}s..." | tee -a agent.log
     sleep $INTERVAL

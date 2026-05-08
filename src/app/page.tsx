@@ -6,12 +6,13 @@ import { es } from "date-fns/locale";
 import { Plus, Terminal, Clock, Activity, Settings } from "lucide-react";
 import { PromptActions } from "@/components/PromptActions";
 import { LogoutButton } from "@/components/LogoutButton";
+import { PromptList } from "@/components/PromptList";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const prompts: Prompt[] = await db.prompt.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { order: "asc" },
   });
 
   return (
@@ -69,80 +70,16 @@ export default async function Dashboard() {
 
       <div className="glass-card" style={{ marginTop: '2rem' }}>
         <h2>Prompts Configurados</h2>
-        <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Frecuencia</th>
-                <th>Última Ejecución</th>
-                <th>Próxima</th>
-                <th style={{ textAlign: 'right' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prompts.map((prompt: Prompt) => (
-                <tr key={prompt.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div className={`status-indicator ${prompt.enabled ? 'status-active' : 'status-inactive'}`} />
-                      <span style={{ fontWeight: 600 }}>{prompt.name}</span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
-                      slug: {prompt.slug}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.875rem' }}>
-                      <strong>{prompt.scheduleType}</strong>
-                      <br />
-                      <span style={{ color: 'var(--muted)' }}>
-                        {prompt.scheduleType === 'INTERVAL' 
-                          ? `Cada ${prompt.intervalValue} ${prompt.intervalUnit}` 
-                          : prompt.scheduleTime}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.875rem' }}>
-                      {prompt.lastExecutedAt 
-                        ? formatDistanceToNow(new Date(prompt.lastExecutedAt), { addSuffix: true, locale: es })
-                        : 'Nunca'}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.875rem', color: prompt.enabled ? 'var(--foreground)' : 'var(--muted)' }}>
-                      {prompt.enabled 
-                        ? format(new Date(prompt.nextExecutionAt), "dd/MM HH:mm")
-                        : 'Desactivado'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <PromptActions 
-                        id={prompt.id}
-                        slug={prompt.slug}
-                        enabled={prompt.enabled}
-                        lastResult={prompt.lastResult}
-                      />
-                      <Link href={`/prompts/${prompt.id}`} className="btn btn-outline" style={{ padding: '0.4rem' }}>
-                        <Settings size={18} />
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {prompts.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
-                    No hay prompts creados. Comienza creando uno nuevo.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--muted)' }}>
+          Arrastra para cambiar el orden de prioridad.
         </div>
+        <PromptList 
+          initialPrompts={JSON.parse(JSON.stringify(prompts))} 
+          apiKey={process.env.API_KEY_HASH || ""} 
+        />
       </div>
     </div>
+  );
+}
   );
 }
