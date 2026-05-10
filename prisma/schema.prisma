@@ -1,14 +1,93 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// This is your Prisma schema file
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
+}
+
+model Workflow {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  enabled     Boolean   @default(true)
+  
+  triggers    Trigger[]
+  nodes       Node[]
+  edges       Edge[]
+  executions  WorkflowExecution[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Trigger {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  type        String   // "TIMER", "WEBHOOK", "MANUAL"
+  config      Json     // Almacena cron, días, etc.
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Node {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  type        String   // "AI_GEMINI", "HTTP_REQUEST", "LOG"
+  name        String
+  config      Json     // Almacena el prompt, modelo, etc.
+  
+  positionX   Float    @default(0)
+  positionY   Float    @default(0)
+  
+  incoming    Edge[]   @relation("TargetNode")
+  outgoing    Edge[]   @relation("SourceNode")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Edge {
+  id             String   @id @default(cuid())
+  workflowId     String
+  workflow       Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  sourceNodeId   String
+  sourceNode     Node     @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  
+  targetNodeId   String
+  targetNode     Node     @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model WorkflowExecution {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status      String   @default("RUNNING") // "RUNNING", "COMPLETED", "FAILED"
+  steps       ExecutionStep[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ExecutionStep {
+  id              String   @id @default(cuid())
+  executionId     String
+  execution       WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId          String
+  status          String   // "PENDING", "RUNNING", "COMPLETED", "FAILED"
+  output          String?  @db.Text
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+  finishedAt      DateTime?
 }
 
 model Prompt {
@@ -17,23 +96,24 @@ model Prompt {
   slug            String   @unique
   content         String   @db.Text
   enabled         Boolean  @default(true)
-  
-  // Scheduling
-  scheduleType    String   // "SINGLE", "WEEKLY", "MONTHLY", "YEARLY", "INTERVAL"
-  scheduleDays    String?  // Comma separated: "1,4,0"
-  scheduleTime    String   // "HH:mm"
-  scheduleDate    Int?     // Day of month (1-31)
-  scheduleMonth   Int?     // Month (0-11) for yearly
-  
-  // Interval mode
+  scheduleType    String?
+  scheduleTime    String?
+  scheduleDays    String?
+  scheduleDate    Int?
+  scheduleMonth   Int?
   intervalValue   Int?
-  intervalUnit    String?  // "seconds", "minutes", "hours"
-  
+  intervalUnit    String?
   nextExecutionAt DateTime @default(now())
   lastExecutedAt  DateTime?
   lastResult      String?  @db.Text
   order           Int      @default(0)
-  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model StoredData {
+  id        String   @id @default(cuid())
+  label     String   @unique
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
 }

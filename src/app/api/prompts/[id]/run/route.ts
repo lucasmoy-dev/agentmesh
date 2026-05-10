@@ -15,13 +15,35 @@ export async function POST(
     return new NextResponse("Not Found", { status: 404 });
   }
 
+  // Llamada a Gemini
+  let geminiResult = "";
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt.content }] }]
+        }),
+      }
+    );
+
+    const data = await response.json();
+    geminiResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error: No se recibió respuesta de Gemini.";
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    geminiResult = "Error al conectar con Gemini.";
+  }
+
   const updated = await db.prompt.update({
     where: { id: prompt.id },
     data: { 
-      nextExecutionAt: new Date(),
+      lastResult: geminiResult,
+      lastExecutedAt: new Date(),
       enabled: true 
     },
   });
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ success: true, result: geminiResult });
 }

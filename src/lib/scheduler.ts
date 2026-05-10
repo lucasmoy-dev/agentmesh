@@ -1,62 +1,77 @@
-import { addDays, addHours, addMinutes, addSeconds, addMonths, addYears, isAfter, set, startOfMinute } from "date-fns";
+import { db } from "./prisma";
 
-export type ScheduleType = "SINGLE" | "WEEKLY" | "MONTHLY" | "YEARLY" | "INTERVAL";
+// Evitar múltiples instancias en hot-reload
+let schedulerStarted = false;
 
-export interface ScheduleConfig {
-  type: ScheduleType;
-  days?: number[]; // 0-6 (Sunday-Saturday)
-  time: string; // "HH:mm"
-  date?: number; // 1-31
-  month?: number; // 0-11
-  intervalValue?: number;
-  intervalUnit?: "seconds" | "minutes" | "hours";
+export function startScheduler(origin: string) {
+  if (schedulerStarted) return;
+  schedulerStarted = true;
+  console.log(" [SCHEDULER] Iniciando motor de triggers en background...");
+
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      // En un entorno real, usaríamos una consulta más compleja, 
+      // pero para el lab, comprobaremos todos los workflows habilitados
+      const workflows = await db.workflow.findMany({
+        where: { enabled: true },
+        include: { nodes: true }
+      });
+
+      for (const workflow of workflows) {
+        const trigger = workflow.nodes.find(n => n.type.toLowerCase().includes("trigger"));
+        if (!trigger) continue;
+
+        const config = trigger.config as any;
+        if (!config || config.scheduleType === "MANUAL") continue;
+
+        if (shouldRun(config, now)) {
+          console.log(` [SCHEDULER] Disparando workflow automático: ${workflow.name} (${workflow.id})`);
+          // Ejecutar en background
+          fetch(`${origin}/api/workflows/${workflow.id}/execute`, { method: "POST" }).catch(e => console.error(e));
+        }
+      }
+    } catch (error) {
+      console.error(" [SCHEDULER ERROR]", error);
+    }
+  }, 60000); // Comprobar cada minuto
 }
 
-export function calculateNextExecution(config: ScheduleConfig, from: Date = new Date()): Date {
-  // For INTERVAL, we just add the time to 'from'
-  if (config.type === "INTERVAL" && config.intervalValue && config.intervalUnit) {
-    switch (config.intervalUnit) {
-      case "seconds": return addSeconds(from, config.intervalValue);
-      case "minutes": return addMinutes(from, config.intervalValue);
-      case "hours": return addHours(from, config.intervalValue);
-    }
+function shouldRun(config: any, now: Date): boolean {
+  const [targetH, targetM] = (config.time || "12:00").split(":").map(Number);
+  const currentH = now.getHours();
+  const currentM = now.getMinutes();
+
+  // Comprobar la hora (margen de 1 minuto)
+  if (currentH !== targetH || currentM !== targetM) {
+    if (config.scheduleType !== "ONCE") return false;
   }
 
-  const [hours, minutes] = config.time.split(":").map(Number);
-  let next = set(startOfMinute(from), { hours, minutes, seconds: 0, milliseconds: 0 });
+  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const currentDayName = dayNames[now.getDay()];
+  const currentDayOfMonth = now.getDate();
+  const currentMonth = now.getMonth() + 1;
 
-  switch (config.type) {
-    case "SINGLE":
-      return next;
-
+  switch (config.scheduleType) {
+    case "DAILY":
+      return true;
     case "WEEKLY":
-      if (!config.days || config.days.length === 0) return next;
-      const sortedDays = [...config.days].sort();
-      const currentDay = from.getDay();
-      const nextDayThisWeek = sortedDays.find(d => d > currentDay || (d === currentDay && isAfter(next, from)));
-
-      if (nextDayThisWeek !== undefined) {
-        const diff = nextDayThisWeek - currentDay;
-        return addDays(next, diff);
-      } else {
-        const firstDayNextWeek = sortedDays[0];
-        const diff = 7 - currentDay + firstDayNextWeek;
-        return addDays(next, diff);
-      }
-
+      return (config.days || []).includes(currentDayName);
     case "MONTHLY":
-      if (!config.date) return next;
-      next = set(next, { date: config.date });
-      if (isAfter(next, from)) return next;
-      return addMonths(next, 1);
-
-    case "YEARLY":
-      if (config.month === undefined || !config.date) return next;
-      next = set(next, { month: config.month, date: config.date });
-      if (isAfter(next, from)) return next;
-      return addYears(next, 1);
-
+      return config.dayOfMonth === currentDayOfMonth;
+    case "ANNUALLY":
+      return config.dayOfMonth === currentDayOfMonth && config.month === currentMonth;
+    case "ONCE":
+      if (!config.onceDate) return false;
+      const once = new Date(config.onceDate);
+      return (
+        once.getFullYear() === now.getFullYear() &&
+        once.getMonth() === now.getMonth() &&
+        once.getDate() === now.getDate() &&
+        once.getHours() === now.getHours() &&
+        once.getMinutes() === now.getMinutes()
+      );
     default:
-      return next;
+      return false;
   }
 }

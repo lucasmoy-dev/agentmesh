@@ -1,82 +1,111 @@
 import { db } from "@/lib/prisma";
-import { Prompt } from "@prisma/client";
 import Link from "next/link";
-import { format, formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
-import { Plus, Terminal, Clock, Activity, Settings } from "lucide-react";
-import { PromptActions } from "@/components/PromptActions";
-import { LogoutButton } from "@/components/LogoutButton";
-import { PromptList } from "@/components/PromptList";
+import { Plus, GitBranch, Clock, Calendar } from "lucide-react";
+import { WorkflowPlayButton } from "@/components/WorkflowPlayButton";
+import { WorkflowActions } from "@/components/WorkflowActions";
+import { WorkflowToggle } from "@/components/WorkflowToggle";
 
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard() {
-  const prompts: Prompt[] = await db.prompt.findMany({
-    orderBy: { order: "asc" },
+export default async function HomePage() {
+  const workflows = await db.workflow.findMany({
+    include: {
+      nodes: true,
+      executions: {
+        orderBy: { createdAt: 'desc' },
+        take: 1
+      }
+    },
+    orderBy: { createdAt: "desc" }
   });
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <div className="logo">AgentMesh Control</div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link href="/api/prompts/info" target="_blank" className="btn btn-outline">API Info</Link>
-          <LogoutButton />
-          <Link href="/prompts/new" className="btn btn-primary">
-            <Plus size={20} />
-            Nuevo Prompt
-          </Link>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-extrabold flex items-center gap-3">
+            <GitBranch className="text-purple-500" /> Workflows
+          </h1>
         </div>
-      </nav>
-
-      <header style={{ marginBottom: '2rem' }}>
-        <h1>Panel de Control</h1>
-        <p style={{ color: 'var(--muted)' }}>Gestiona y monitorea tus prompts automatizados.</p>
+        <Link href="/workflows/new" className="btn btn-primary flex items-center gap-2 shadow-lg shadow-purple-500/20">
+          <Plus size={20} /> Nuevo Workflow
+        </Link>
       </header>
 
-      <div className="grid">
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <Activity size={20} color="var(--primary)" />
-            <span style={{ fontWeight: 600 }}>Total Prompts</span>
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 700 }}>{prompts.length}</div>
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-white/5 text-left">
+                <th className="p-6 font-semibold text-xs uppercase tracking-wider">Workflow</th>
+                <th className="p-6 font-semibold text-xs uppercase tracking-wider">Última Ejecución</th>
+                <th className="p-6 font-semibold text-xs uppercase tracking-wider text-center">Estado</th>
+                <th className="p-6 font-semibold text-xs uppercase tracking-wider text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workflows.map((wf) => {
+                const lastExecution = wf.executions?.[0];
+                return (
+                  <tr key={wf.id} className="border-b border-white/5 hover:bg-white/10 transition-all group">
+                    <td className="p-6">
+                      <div className="font-bold text-lg group-hover:text-purple-400 transition-colors">{wf.name}</div>
+                      <div className="text-[10px] text-muted font-medium mt-1 flex items-center gap-1.5">
+                        <Calendar size={10} />
+                        Creado {new Date(wf.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      {lastExecution ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+                            <Clock size={14} />
+                            {new Date(lastExecution.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <div className="text-[10px] text-muted font-medium">
+                            {new Date(lastExecution.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted italic">Nunca ejecutado</div>
+                      )}
+                    </td>
+                    <td className="p-6">
+                      <div className="flex justify-center">
+                        <WorkflowToggle id={wf.id} initialStatus={wf.enabled} />
+                      </div>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center justify-end gap-3">
+                        <WorkflowPlayButton workflowId={wf.id} />
+                        <div className="h-6 w-px bg-white/10 mx-1" />
+                        <WorkflowActions id={wf.id} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {workflows.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="p-6 bg-white/5 rounded-full">
+                        <GitBranch size={48} className="text-muted opacity-20" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xl font-bold">No hay workflows</p>
+                        <p className="text-sm text-muted">Comienza creando tu primera automatización.</p>
+                      </div>
+                      <Link href="/workflows/new" className="btn btn-primary mt-2">
+                        Crear Workflow
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <Terminal size={20} color="var(--accent)" />
-            <span style={{ fontWeight: 600 }}>Activos</span>
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-            {prompts.filter((p: Prompt) => p.enabled).length}
-          </div>
-        </div>
-
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <Clock size={20} color="var(--muted)" />
-            <span style={{ fontWeight: 600 }}>Próximas 24h</span>
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 700 }}>
-            {prompts.filter((p: Prompt) => {
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              return p.enabled && new Date(p.nextExecutionAt) <= tomorrow;
-            }).length}
-          </div>
-        </div>
-      </div>
-
-      <div className="glass-card" style={{ marginTop: '2rem' }}>
-        <h2>Prompts Configurados</h2>
-        <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--muted)' }}>
-          Arrastra para cambiar el orden de prioridad.
-        </div>
-        <PromptList 
-          initialPrompts={JSON.parse(JSON.stringify(prompts))} 
-          apiKey={process.env.API_KEY_HASH || ""} 
-        />
       </div>
     </div>
   );

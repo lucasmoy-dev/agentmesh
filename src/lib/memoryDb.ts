@@ -3,19 +3,19 @@ import { Prompt } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 
-const DATA_FILE = path.join(process.cwd(), "data", "prompts.json");
+const DATA_FILE = path.join(process.cwd(), "data", "db.json");
 
-function readData(): Prompt[] {
-  if (!fs.existsSync(DATA_FILE)) return [];
+function readData() {
+  if (!fs.existsSync(DATA_FILE)) return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [] };
   try {
     const data = fs.readFileSync(DATA_FILE, "utf-8");
     return JSON.parse(data);
   } catch (e) {
-    return [];
+    return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [] };
   }
 }
 
-function saveData(data: Prompt[]) {
+function saveData(data: any) {
   if (!fs.existsSync(path.dirname(DATA_FILE))) {
     fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   }
@@ -23,68 +23,102 @@ function saveData(data: Prompt[]) {
 }
 
 export const memoryDb = {
-  prompt: {
-    findMany: async (args?: any) => {
+  workflow: {
+    findMany: async () => readData().workflows,
+    findUnique: async (args: any) => {
       const data = readData();
-      if (args?.orderBy?.createdAt === "desc") {
-        return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const wf = data.workflows.find((w: any) => w.id === args.where.id);
+      if (wf) {
+        wf.nodes = data.nodes.filter((n: any) => n.workflowId === wf.id);
+        wf.edges = data.edges.filter((e: any) => e.workflowId === wf.id);
       }
-      return data;
+      return wf;
     },
-    findUnique: async (args?: any) => {
-      const { where } = args || {};
+    delete: async (args: any) => {
       const data = readData();
-      return data.find((p: any) => p.id === where?.id || p.slug === where?.slug) || null;
-    },
-    findFirst: async (args?: any) => {
-      const data = readData();
-      const now = new Date();
-      return data.find((p: any) => p.enabled && new Date(p.nextExecutionAt) <= now) || null;
-    },
-    create: async (args?: any) => {
-      const { data } = args || {};
-      const allPrompts = readData();
-      const newPrompt: Prompt = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: data.name,
-        slug: data.slug,
-        content: data.content,
-        enabled: true,
-        scheduleType: data.scheduleType,
-        scheduleTime: data.scheduleTime,
-        scheduleDays: data.scheduleDays || null,
-        scheduleDate: data.scheduleDate || null,
-        scheduleMonth: data.scheduleMonth || null,
-        intervalValue: data.intervalValue || null,
-        intervalUnit: data.intervalUnit || null,
-        nextExecutionAt: data.nextExecutionAt || new Date(),
-        lastExecutedAt: null,
-        lastResult: null,
-        order: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      allPrompts.push(newPrompt);
-      saveData(allPrompts);
-      return newPrompt;
-    },
-    update: async (args?: any) => {
-      const { where, data } = args || {};
-      const allPrompts = readData();
-      const index = allPrompts.findIndex(p => p.id === where.id || p.slug === where.slug);
-      if (index !== -1) {
-        allPrompts[index] = { ...allPrompts[index], ...data, updatedAt: new Date() };
-        saveData(allPrompts);
-        return allPrompts[index];
-      }
-      throw new Error("Not found");
-    },
-    delete: async (args?: any) => {
-      const { where } = args || {};
-      const allPrompts = readData();
-      const filtered = allPrompts.filter((p: any) => p.id !== where?.id);
-      saveData(filtered);
+      data.workflows = data.workflows.filter((w: any) => w.id !== args.where.id);
+      saveData(data);
     },
   },
+  node: {
+    deleteMany: async () => {},
+    createMany: async (args: any) => {
+      const data = readData();
+      data.nodes = [...data.nodes.filter((n: any) => n.workflowId !== args.data[0]?.workflowId), ...args.data];
+      saveData(data);
+    }
+  },
+  edge: {
+    deleteMany: async () => {},
+    createMany: async (args: any) => {
+      const data = readData();
+      data.edges = [...data.edges.filter((e: any) => e.workflowId !== args.data[0]?.workflowId), ...args.data];
+      saveData(data);
+    }
+  },
+  workflowExecution: {
+    create: async (args: any) => {
+      const data = readData();
+      const execution = { id: Math.random().toString(36).substr(2, 9), status: "RUNNING", ...args.data, createdAt: new Date(), updatedAt: new Date() };
+      data.executions.push(execution);
+      saveData(data);
+      return execution;
+    },
+    update: async (args: any) => {
+      const data = readData();
+      const index = data.executions.findIndex((e: any) => e.id === args.where.id);
+      if (index !== -1) {
+        data.executions[index] = { ...data.executions[index], ...args.data, updatedAt: new Date() };
+        saveData(data);
+        return data.executions[index];
+      }
+      throw new Error("Execution not found");
+    },
+    findUnique: async (args: any) => {
+      const data = readData();
+      const execution = data.executions.find((e: any) => e.id === args.where.id);
+      if (execution) {
+        execution.steps = data.executionSteps.filter((s: any) => s.executionId === execution.id);
+      }
+      return execution;
+    }
+  },
+  executionStep: {
+    create: async (args: any) => {
+      const data = readData();
+      const step = { id: Math.random().toString(36).substr(2, 9), ...args.data, createdAt: new Date() };
+      data.executionSteps.push(step);
+      saveData(data);
+      return step;
+    },
+    upsert: async (args: any) => {
+      const data = readData();
+      const index = data.executionSteps.findIndex((s: any) => s.executionId === args.where.executionId_nodeId?.executionId && s.nodeId === args.where.executionId_nodeId?.nodeId);
+      if (index !== -1) {
+        data.executionSteps[index] = { ...data.executionSteps[index], ...args.update };
+      } else {
+        data.executionSteps.push({ id: Math.random().toString(36).substr(2, 9), ...args.create, createdAt: new Date() });
+      }
+      saveData(data);
+      return {};
+    }
+  },
+  storedData: {
+    upsert: async (args: any) => {
+      const data = readData();
+      const index = data.storedData.findIndex((s: any) => s.label === args.where.label);
+      if (index !== -1) {
+        data.storedData[index] = { ...data.storedData[index], ...args.update };
+      } else {
+        data.storedData.push({ id: Math.random().toString(), ...args.create });
+      }
+      saveData(data);
+      return {};
+    },
+    findMany: async () => readData().storedData,
+  },
   $transaction: async (items: any[]) => Promise.all(items),
+  prompt: {
+    findMany: async () => readData().prompts,
+  }
 };

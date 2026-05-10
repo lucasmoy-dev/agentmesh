@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useId } from "react";
 import { 
   DndContext, 
   closestCenter,
@@ -41,9 +41,10 @@ interface Prompt {
 interface SortableItemProps {
   prompt: Prompt;
   apiKey: string;
+  mounted: boolean;
 }
 
-function SortableRow({ prompt, apiKey }: SortableItemProps) {
+function SortableRow({ prompt, apiKey, mounted }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -65,7 +66,11 @@ function SortableRow({ prompt, apiKey }: SortableItemProps) {
     <tr ref={setNodeRef} style={style}>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--muted)', display: 'flex' }}>
+          <div 
+            {...(mounted ? attributes : {})} 
+            {...(mounted ? listeners : {})} 
+            style={{ cursor: mounted ? 'grab' : 'default', color: 'var(--muted)', display: 'flex' }}
+          >
             <GripVertical size={20} />
           </div>
           <div>
@@ -92,14 +97,14 @@ function SortableRow({ prompt, apiKey }: SortableItemProps) {
       </td>
       <td>
         <span style={{ fontSize: '0.875rem' }}>
-          {prompt.lastExecutedAt 
+          {!mounted ? '...' : prompt.lastExecutedAt 
             ? formatDistanceToNow(new Date(prompt.lastExecutedAt), { addSuffix: true, locale: es })
             : 'Nunca'}
         </span>
       </td>
       <td>
         <span style={{ fontSize: '0.875rem', color: prompt.enabled ? 'var(--foreground)' : 'var(--muted)' }}>
-          {prompt.enabled 
+          {!mounted ? '...' : prompt.enabled 
             ? format(new Date(prompt.nextExecutionAt), "dd/MM HH:mm")
             : 'Desactivado'}
         </span>
@@ -124,6 +129,12 @@ function SortableRow({ prompt, apiKey }: SortableItemProps) {
 
 export function PromptList({ initialPrompts, apiKey }: { initialPrompts: Prompt[], apiKey: string }) {
   const [prompts, setPrompts] = useState(initialPrompts);
+  const [mounted, setMounted] = useState(false);
+  const id = useId();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -162,6 +173,7 @@ export function PromptList({ initialPrompts, apiKey }: { initialPrompts: Prompt[
   return (
     <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
       <DndContext 
+        id={id}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
@@ -182,7 +194,7 @@ export function PromptList({ initialPrompts, apiKey }: { initialPrompts: Prompt[
               strategy={verticalListSortingStrategy}
             >
               {prompts.map((prompt) => (
-                <SortableRow key={prompt.id} prompt={prompt} apiKey={apiKey} />
+                <SortableRow key={prompt.id} prompt={prompt} apiKey={apiKey} mounted={mounted} />
               ))}
             </SortableContext>
             {prompts.length === 0 && (

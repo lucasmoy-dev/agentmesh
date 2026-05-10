@@ -1,0 +1,147 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/prisma";
+import fs from "fs";
+import path from "path";
+import nodemailer from "nodemailer";
+
+const CONFIG_PATH = path.join(process.cwd(), "data", "config.json");
+
+function getSettings() {
+  if (!fs.existsSync(CONFIG_PATH)) return {};
+  return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const settings = getSettings();
+
+  try {
+    const workflow = await db.workflow.findUnique({
+      where: { id },
+      include: { nodes: true, edges: true }
+    });
+
+    if (!workflow) return NextResponse.json({ success: false, error: "Workflow no encontrado" }, { status: 404 });
+
+    const execution = await db.workflowExecution.create({
+      data: { workflowId: id, status: "RUNNING" }
+    });
+
+    // Worker en background
+    (async () => {
+      let currentNode = workflow.nodes.find(n => n.type.toLowerCase().includes("trigger"));
+      let lastOutput = "Inicio de ejecución";
+
+      while (currentNode) {
+        const config = currentNode.config as any;
+
+        // REGISTRAR PASO INICIAL
+        const step = await db.executionStep.create({
+          data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" }
+        });
+
+        try {
+          let output = "";
+
+          // LOGICA DE MOCK (PRIORIDAD ALTA)
+          if (config?.mockEnabled) {
+            console.log(` [MOCK] Nodo ${currentNode.name} simulando respuesta...`);
+            output = config.mockResponse || "Respuesta mockeada vacía";
+          } else {
+            // EJECUCION REAL
+            if (currentNode.type.toLowerCase().includes("gemini")) {
+              const prompt = config.prompt.replace("{{output}}", lastOutput);
+              const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-goog-api-key": settings.GEMINI_API_KEY },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+              });
+              const json = await res.json();
+              if (json.error) throw new Error(`API Error ${json.error.code}: ${JSON.stringify(json.error)}`);
+              output = json.candidates[0].content.parts[0].text;
+            } else if (currentNode.type.toLowerCase().includes("storage")) {
+              const label = config.label || "default";
+              if (!config.mockEnabled) {
+                await db.storedData.upsert({
+                  where: { label },
+                  update: { content: lastOutput, updatedAt: new Date() },
+                  create: { label, content: lastOutput }
+                });
+              }
+              output = lastOutput; // Pass through the same content it stored
+            } else if (currentNode.type.toLowerCase().includes("email")) {
+              if (!settings.SMTP_HOST || !settings.SMTP_USER || !settings.SMTP_PASS) {
+                throw new Error("Configuración SMTP incompleta en Ajustes.");
+              }
+              const transporter = nodemailer.createTransport({
+                host: settings.SMTP_HOST,
+                port: parseInt(settings.SMTP_PORT || "587"),
+                secure: settings.SMTP_PORT === "465",
+                auth: { user: settings.SMTP_USER, pass: settings.SMTP_PASS }
+              });
+
+              const now = new Date();
+              const dateStr = now.toLocaleDateString('es-ES');
+              const dateTimeStr = now.toLocaleString('es-ES');
+              
+              let body = (config.body || "")
+                .replace(/{{output}}/g, lastOutput)
+                .replace(/{{fecha}}/g, dateStr)
+                .replace(/{{fecha_hora}}/g, dateTimeStr)
+                .replace(/{{workflow_name}}/g, workflow.name);
+
+              await transporter.sendMail({
+                from: settings.SMTP_FROM || settings.SMTP_USER,
+                to: config.to,
+                subject: config.subject || "AgentMesh Notification",
+                text: body
+              });
+              output = `Email enviado con éxito a ${config.to}`;
+            } else if (currentNode.type.toLowerCase().includes("trigger")) {
+              output = "Trigger activado";
+            } else {
+              output = `Nodo de tipo ${currentNode.type} no implementado`;
+            }
+          }
+
+          lastOutput = output;
+          await db.executionStep.update({
+            where: { id: step.id },
+            data: { status: "COMPLETED", output, finishedAt: new Date() }
+          });
+
+          // Buscar siguiente
+          const edge = workflow.edges.find(e => e.sourceNodeId === currentNode?.id);
+          currentNode = edge ? workflow.nodes.find(n => n.id === edge.targetNodeId) : undefined;
+
+        } catch (error: any) {
+          console.error(`Error en nodo ${currentNode.id}:`, error);
+          await db.executionStep.update({
+            where: { id: step.id },
+            data: { status: "FAILED", output: `Error: ${error.message}`, finishedAt: new Date() }
+          });
+          await db.workflowExecution.update({
+            where: { id: execution.id },
+            data: { status: "FAILED" }
+          });
+          return;
+        }
+      }
+
+      await db.workflowExecution.update({
+        where: { id: execution.id },
+        data: { status: "COMPLETED" }
+      });
+
+    })();
+
+    return NextResponse.json({ success: true, executionId: execution.id });
+
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ success: false, error: error.message });
+  }
+}

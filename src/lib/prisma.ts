@@ -1,9 +1,12 @@
 import { PrismaClient } from "@prisma/client";
+// Force reload to pick up new models
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { memoryDb } from "./memoryDb";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// Clear cache to force refresh models
+globalForPrisma.prisma = undefined as any;
 
 let prisma: PrismaClient = undefined as any;
 

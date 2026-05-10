@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Eye, Power, PowerOff, Loader2 } from "lucide-react";
+import { Play, Eye, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface PromptActionsProps {
@@ -29,35 +29,18 @@ export function PromptActions({ id, slug, enabled, lastResult, apiKey }: PromptA
   };
 
   const handlePlay = async () => {
-    if (!confirm("¿Ejecutar este prompt ahora mismo?")) return;
+    if (loading) return;
     setLoading(true);
     try {
-      // 1. Get current nextExecutionAt to compare later
-      const initialRes = await fetch(`/api/prompts/${id}?password=${apiKey}`);
-      const initialData = await initialRes.json();
-      const oldNextExecution = initialData.nextExecutionAt;
-
-      // 2. Trigger manual run
-      await fetch(`/api/prompts/${slug}/run`, { method: "POST" });
-
-      // 3. Poll until nextExecutionAt changes (meaning the Pi reported results)
-      const poll = async () => {
-        const res = await fetch(`/api/prompts/${id}?password=${apiKey}`);
-        const data = await res.json();
-        
-        if (data.nextExecutionAt !== oldNextExecution) {
-          // It changed! The Pi finished
-          setLoading(false);
-          router.refresh();
-          return;
-        }
-        // Keep polling every 2 seconds
-        setTimeout(poll, 2000);
-      };
-
-      poll();
+      const res = await fetch(`/api/prompts/${slug}/run`, { method: "POST" });
+      if (res.ok) {
+        // Forzar refresco para ver el resultado de Gemini
+        router.refresh();
+      }
     } catch (err) {
       console.error(err);
+      alert("Error al conectar con Gemini");
+    } finally {
       setLoading(false);
     }
   };
@@ -76,9 +59,9 @@ export function PromptActions({ id, slug, enabled, lastResult, apiKey }: PromptA
 
       <button 
         onClick={handlePlay}
-        className="btn btn-outline"
+        className={`btn btn-outline ${loading ? 'opacity-50' : ''}`}
         style={{ padding: '0.4rem' }}
-        title="Ejecutar ahora"
+        title="Ejecutar con Gemini"
         disabled={loading}
       >
         {loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
