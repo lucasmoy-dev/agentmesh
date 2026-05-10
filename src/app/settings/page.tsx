@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Key, CheckCircle2, AlertCircle, Loader2, Mail, Server, Shield, Send } from 'lucide-react';
+import { Settings, Save, Key, CheckCircle2, AlertCircle, Loader2, Mail, Server, Shield, Send, ExternalLink, X } from 'lucide-react';
 
 export default function SettingsPage() {
   const [config, setConfig] = useState({
@@ -14,6 +14,7 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [showGmailModal, setShowGmailModal] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings').then(res => res.json()).then(data => {
@@ -43,16 +44,22 @@ export default function SettingsPage() {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  const applyGmailSettings = () => {
+  const handleGmailSetup = () => {
     setConfig(prev => ({
       ...prev,
       SMTP_HOST: "smtp.gmail.com",
       SMTP_PORT: "587"
     }));
+    
+    // Abrir link en nueva pestaña
+    window.open("https://myaccount.google.com/apppasswords?continue=https://myaccount.google.com/security", "_blank");
+    
+    // Mostrar modal con instrucciones
+    setShowGmailModal(true);
   };
 
   return (
-    <div className="container py-8 max-w-4xl">
+    <div className="container py-8 max-w-4xl relative">
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         <div style={{ padding: '12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderRadius: '16px', color: '#6366f1' }}>
           <Settings size={32} />
@@ -62,6 +69,44 @@ export default function SettingsPage() {
           <p className="text-muted">Gestiona tus claves de API y preferencias del sistema</p>
         </div>
       </div>
+
+      {/* Gmail Instructions Modal */}
+      {showGmailModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-card" style={{ maxWidth: '500px', width: '100%', padding: '40px', position: 'relative', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button onClick={() => setShowGmailModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.5, cursor: 'pointer' }}><X size={24} /></button>
+            
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(234, 67, 53, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#ea4335' }}>
+                <Mail size={32} />
+              </div>
+              <h2 className="text-2xl font-bold">Configuración de Gmail</h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ width: '24px', height: '24px', backgroundColor: '#6366f1', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0 }}>1</div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>Hemos abierto la página de Google en una nueva pestaña.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ width: '24px', height: '24px', backgroundColor: '#6366f1', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0 }}>2</div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>Crea una nueva contraseña llamada <b>"AgentMesh"</b>.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ width: '24px', height: '24px', backgroundColor: '#6366f1', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0 }}>3</div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.5' }}>Copia el código de 16 caracteres y <b>pégalo en el campo "CONTRASEÑA"</b> de esta página.</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowGmailModal(false)}
+              style={{ width: '100%', marginTop: '40px', padding: '16px', backgroundColor: '#6366f1', border: 'none', borderRadius: '14px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Entendido, voy a pegarla
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Gemini Settings */}
@@ -93,7 +138,7 @@ export default function SettingsPage() {
               <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Email (SMTP)</h3>
             </div>
             <button 
-              onClick={applyGmailSettings}
+              onClick={handleGmailSetup}
               style={{ padding: '6px 12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Send size={12} /> Configurar Gmail

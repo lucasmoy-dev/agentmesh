@@ -1,18 +1,59 @@
 import { db } from "./prisma";
 
-// Evitar múltiples instancias en hot-reload
+export type ScheduleType = "SINGLE" | "DAILY" | "WEEKLY" | "MONTHLY" | "ANNUALLY" | "INTERVAL";
+
+export interface ScheduleConfig {
+  type: ScheduleType;
+  time?: string; // HH:mm
+  days?: number[]; // [0-6]
+  date?: number; // 1-31
+  month?: number; // 1-12
+  intervalValue?: number;
+  intervalUnit?: "minutes" | "hours" | "days";
+}
+
+export function calculateNextExecution(config: ScheduleConfig, from: Date = new Date()): Date {
+  const next = new Date(from);
+  next.setSeconds(0, 0);
+
+  if (config.time) {
+    const [h, m] = config.time.split(":").map(Number);
+    next.setHours(h, m);
+  }
+
+  // Si la hora ya pasó hoy, avanzar al siguiente periodo
+  if (next <= from && config.type !== "SINGLE") {
+    if (config.type === "DAILY") next.setDate(next.getDate() + 1);
+    if (config.type === "WEEKLY" && config.days) {
+      // Buscar el siguiente día de la semana
+      let found = false;
+      for (let i = 1; i <= 7; i++) {
+        const d = new Date(next);
+        d.setDate(d.getDate() + i);
+        if (config.days.includes(d.getDay())) {
+          next.setDate(d.getDate());
+          found = true;
+          break;
+        }
+      }
+    }
+    if (config.type === "MONTHLY") next.setMonth(next.getMonth() + 1);
+    if (config.type === "ANNUALLY") next.setFullYear(next.getFullYear() + 1);
+  }
+
+  return next;
+}
+
 let schedulerStarted = false;
 
 export function startScheduler(origin: string) {
   if (schedulerStarted) return;
   schedulerStarted = true;
-  console.log(" [SCHEDULER] Iniciando motor de triggers en background...");
+  console.log(" [SCHEDULER] Iniciando motor de triggers en background (DB Mode)...");
 
   setInterval(async () => {
     try {
       const now = new Date();
-      // En un entorno real, usaríamos una consulta más compleja, 
-      // pero para el lab, comprobaremos todos los workflows habilitados
       const workflows = await db.workflow.findMany({
         where: { enabled: true },
         include: { nodes: true }
@@ -26,15 +67,14 @@ export function startScheduler(origin: string) {
         if (!config || config.scheduleType === "MANUAL") continue;
 
         if (shouldRun(config, now)) {
-          console.log(` [SCHEDULER] Disparando workflow automático: ${workflow.name} (${workflow.id})`);
-          // Ejecutar en background
+          console.log(` [SCHEDULER] Disparando workflow: ${workflow.name} (${workflow.id})`);
           fetch(`${origin}/api/workflows/${workflow.id}/execute`, { method: "POST" }).catch(e => console.error(e));
         }
       }
     } catch (error) {
       console.error(" [SCHEDULER ERROR]", error);
     }
-  }, 60000); // Comprobar cada minuto
+  }, 60000);
 }
 
 function shouldRun(config: any, now: Date): boolean {
@@ -42,7 +82,6 @@ function shouldRun(config: any, now: Date): boolean {
   const currentH = now.getHours();
   const currentM = now.getMinutes();
 
-  // Comprobar la hora (margen de 1 minuto)
   if (currentH !== targetH || currentM !== targetM) {
     if (config.scheduleType !== "ONCE") return false;
   }
@@ -53,14 +92,10 @@ function shouldRun(config: any, now: Date): boolean {
   const currentMonth = now.getMonth() + 1;
 
   switch (config.scheduleType) {
-    case "DAILY":
-      return true;
-    case "WEEKLY":
-      return (config.days || []).includes(currentDayName);
-    case "MONTHLY":
-      return config.dayOfMonth === currentDayOfMonth;
-    case "ANNUALLY":
-      return config.dayOfMonth === currentDayOfMonth && config.month === currentMonth;
+    case "DAILY": return true;
+    case "WEEKLY": return (config.days || []).includes(currentDayName);
+    case "MONTHLY": return config.dayOfMonth === currentDayOfMonth;
+    case "ANNUALLY": return config.dayOfMonth === currentDayOfMonth && config.month === currentMonth;
     case "ONCE":
       if (!config.onceDate) return false;
       const once = new Date(config.onceDate);
@@ -71,7 +106,6 @@ function shouldRun(config: any, now: Date): boolean {
         once.getHours() === now.getHours() &&
         once.getMinutes() === now.getMinutes()
       );
-    default:
-      return false;
+    default: return false;
   }
 }
