@@ -6,12 +6,23 @@ import path from "path";
 const DATA_FILE = path.join(process.cwd(), "data", "db.json");
 
 function readData() {
-  if (!fs.existsSync(DATA_FILE)) return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [] };
+  if (!fs.existsSync(DATA_FILE)) return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [], triggers: [] };
   try {
     const data = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return {
+      prompts: parsed.prompts || [],
+      workflows: parsed.workflows || [],
+      nodes: parsed.nodes || [],
+      edges: parsed.edges || [],
+      storedData: parsed.storedData || [],
+      executions: parsed.executions || [],
+      executionSteps: parsed.executionSteps || [],
+      systemSettings: parsed.systemSettings || [],
+      triggers: parsed.triggers || []
+    };
   } catch (e) {
-    return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [] };
+    return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [], triggers: [] };
   }
 }
 
@@ -24,7 +35,13 @@ function saveData(data: any) {
 
 export const memoryDb = {
   workflow: {
-    findMany: async () => readData().workflows,
+    findMany: async (args: any = {}) => {
+      let data = readData().workflows;
+      if (args.orderBy?.createdAt === 'desc') {
+        data = [...data].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+      return data;
+    },
     findUnique: async (args: any) => {
       const data = readData();
       const wf = data.workflows.find((w: any) => w.id === args.where.id);
@@ -55,6 +72,17 @@ export const memoryDb = {
       saveData(data);
       return wf;
     }
+  },
+  trigger: {
+    findMany: async () => readData().triggers,
+    create: async (args: any) => {
+      const data = readData();
+      const t = { id: Math.random().toString(36).substr(2, 9), ...args.data, createdAt: new Date() };
+      data.triggers.push(t);
+      saveData(data);
+      return t;
+    },
+    deleteMany: async () => {}
   },
   node: {
     deleteMany: async () => {},
