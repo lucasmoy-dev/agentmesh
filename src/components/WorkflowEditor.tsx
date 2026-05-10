@@ -15,6 +15,7 @@ import {
   MarkerType,
   applyNodeChanges,
   NodeChange,
+  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type } from 'lucide-react';
@@ -141,7 +142,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
       const updatedNodes = [...realNodes, newNode];
       setEdges((eds) => {
         const realEdges = getRealEdges(eds);
-        const newEdges = parentId ? addEdge({ source: parentId, target: id, ...defaultEdgeOptions }, realEdges) : realEdges;
+        const newEdges = parentId ? addEdge({ id: `e-${parentId}-${id}`, source: parentId, target: id, ...defaultEdgeOptions }, realEdges) : realEdges;
         const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(updatedNodes, newEdges);
         setTimeout(() => { setNodes(finalNodes); setEdges(finalEdges); }, 0);
         return newEdges;
@@ -247,7 +248,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
       <div style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onConnect={(p) => setNodes(refreshGhostNodes(nodes, addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges))).nodes)} onNodeClick={(e, n) => n.type !== 'ghost' && setSelectedNodeId(n.id)} onPaneClick={() => { setSelectedNodeId(null); setGhostMenu(null); }} nodeTypes={nodeTypes} colorMode="dark" fitView>
-            <Background variant="dots" gap={25} size={1} color="rgba(255,255,255,0.05)" />
+            <Background variant={BackgroundVariant.Dots} gap={25} size={1} color="rgba(255,255,255,0.05)" />
             {ghostMenu && (
               <Panel position="top-left" style={{ position: 'absolute', left: ghostMenu.x, top: ghostMenu.y, zIndex: 1000 }}>
                 <div style={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -279,7 +280,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                       <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white' }}>Mockear Respuesta</span>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={selectedNode.data.mockEnabled || false} onChange={(e) => updateNodeData(selectedNode.id, { mockEnabled: e.target.checked })} />
+                      <input type="checkbox" checked={!!selectedNode.data.mockEnabled} onChange={(e) => updateNodeData(selectedNode.id, { mockEnabled: e.target.checked })} />
                       <span className="slider round"></span>
                     </label>
                   </div>

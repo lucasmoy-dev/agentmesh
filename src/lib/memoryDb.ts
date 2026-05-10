@@ -6,12 +6,12 @@ import path from "path";
 const DATA_FILE = path.join(process.cwd(), "data", "db.json");
 
 function readData() {
-  if (!fs.existsSync(DATA_FILE)) return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [] };
+  if (!fs.existsSync(DATA_FILE)) return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [] };
   try {
     const data = fs.readFileSync(DATA_FILE, "utf-8");
     return JSON.parse(data);
   } catch (e) {
-    return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [] };
+    return { prompts: [], workflows: [], nodes: [], edges: [], storedData: [], executions: [], executionSteps: [], systemSettings: [] };
   }
 }
 
@@ -34,11 +34,27 @@ export const memoryDb = {
       }
       return wf;
     },
+    update: async (args: any) => {
+      const data = readData();
+      const index = data.workflows.findIndex((w: any) => w.id === args.where.id);
+      if (index !== -1) {
+        data.workflows[index] = { ...data.workflows[index], ...args.data };
+        saveData(data);
+        return data.workflows[index];
+      }
+    },
     delete: async (args: any) => {
       const data = readData();
       data.workflows = data.workflows.filter((w: any) => w.id !== args.where.id);
       saveData(data);
     },
+    create: async (args: any) => {
+      const data = readData();
+      const wf = { id: Math.random().toString(36).substr(2, 9), ...args.data, createdAt: new Date() };
+      data.workflows.push(wf);
+      saveData(data);
+      return wf;
+    }
   },
   node: {
     deleteMany: async () => {},
@@ -72,7 +88,7 @@ export const memoryDb = {
         saveData(data);
         return data.executions[index];
       }
-      throw new Error("Execution not found");
+      return {};
     },
     findUnique: async (args: any) => {
       const data = readData();
@@ -90,6 +106,15 @@ export const memoryDb = {
       data.executionSteps.push(step);
       saveData(data);
       return step;
+    },
+    update: async (args: any) => {
+      const data = readData();
+      const index = data.executionSteps.findIndex((s: any) => s.id === args.where.id);
+      if (index !== -1) {
+        data.executionSteps[index] = { ...data.executionSteps[index], ...args.data };
+        saveData(data);
+      }
+      return {};
     },
     upsert: async (args: any) => {
       const data = readData();
@@ -116,9 +141,41 @@ export const memoryDb = {
       return {};
     },
     findMany: async () => readData().storedData,
+    findUnique: async (args: any) => {
+      const data = readData();
+      return data.storedData.find((s: any) => s.label === args.where.label || s.id === args.where.id);
+    },
+    delete: async (args: any) => {
+      const data = readData();
+      data.storedData = data.storedData.filter((s: any) => s.id !== args.where.id);
+      saveData(data);
+    },
+    update: async (args: any) => {
+      const data = readData();
+      const index = data.storedData.findIndex((s: any) => s.id === args.where.id);
+      if (index !== -1) {
+        data.storedData[index] = { ...data.storedData[index], ...args.data };
+        saveData(data);
+      }
+    }
+  },
+  systemSetting: {
+    findMany: async () => readData().systemSettings,
+    upsert: async (args: any) => {
+      const data = readData();
+      const index = data.systemSettings.findIndex((s: any) => s.key === args.where.key);
+      if (index !== -1) {
+        data.systemSettings[index] = { ...data.systemSettings[index], ...args.update };
+      } else {
+        data.systemSettings.push({ id: Math.random().toString(), ...args.create });
+      }
+      saveData(data);
+      return {};
+    }
   },
   $transaction: async (items: any[]) => Promise.all(items),
   prompt: {
     findMany: async () => readData().prompts,
+    findFirst: async () => null,
   }
 };

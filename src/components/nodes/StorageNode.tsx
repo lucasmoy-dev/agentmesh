@@ -40,7 +40,7 @@ export const StorageNode = memo(({ data, isConnectable }: NodeProps) => {
 
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Guardar DB</div>
-        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{data.label || 'marmota'}</div>
+        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.label as string) || 'marmota'}</div>
       </div>
 
       {!isExecuting && !isFinished && !isError && (

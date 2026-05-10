@@ -37,7 +37,7 @@ export async function PATCH(
 
     // Sincronización de nodos y edges si se envían
     if (nodes && edges) {
-      await db.$transaction([
+      await (db as any).$transaction([
         db.node.deleteMany({ where: { workflowId: id } }),
         db.edge.deleteMany({ where: { workflowId: id } }),
         
@@ -65,7 +65,7 @@ export async function PATCH(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     return new NextResponse("Error saving workflow", { status: 500 });
   }

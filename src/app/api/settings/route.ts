@@ -32,7 +32,7 @@ export async function GET() {
     
     const settings = await db.systemSetting.findMany();
     const config: Record<string, string> = {};
-    settings.forEach(s => {
+    settings.forEach((s: any) => {
       config[s.key] = s.value;
     });
     

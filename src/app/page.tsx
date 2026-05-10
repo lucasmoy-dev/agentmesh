@@ -44,7 +44,7 @@ export default async function HomePage() {
               </tr>
             </thead>
             <tbody>
-              {workflows.map((wf) => {
+              {workflows.map((wf: any) => {
                 const lastExecution = wf.executions?.[0];
                 return (
                   <tr key={wf.id} className="border-b border-white/5 hover:bg-white/10 transition-all group">

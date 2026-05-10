@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 async function getSettings() {
   const settings = await db.systemSetting.findMany();
   const config: Record<string, string> = {};
-  settings.forEach(s => { config[s.key] = s.value; });
+  settings.forEach((s: any) => { config[s.key] = s.value; });
   return config;
 }
 
@@ -30,7 +30,7 @@ export async function POST(
 
     // Worker en background
     (async () => {
-      let currentNode = workflow.nodes.find(n => n.type.toLowerCase().includes("trigger"));
+      let currentNode: any = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
       let lastOutput = "Inicio de ejecución";
 
       while (currentNode) {
@@ -105,8 +105,8 @@ export async function POST(
             data: { status: "COMPLETED", output, finishedAt: new Date() }
           });
 
-          const edge = workflow.edges.find(e => e.sourceNodeId === currentNode?.id);
-          currentNode = edge ? workflow.nodes.find(n => n.id === edge.targetNodeId) : undefined;
+          const edge: any = workflow.edges.find((e: any) => e.sourceNodeId === currentNode?.id);
+          currentNode = edge ? workflow.nodes.find((n: any) => n.id === edge.targetNodeId) : undefined;
 
         } catch (error: any) {
           await db.executionStep.update({
