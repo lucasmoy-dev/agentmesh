@@ -18,7 +18,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type } from 'lucide-react';
+import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge } from 'lucide-react';
 import { GeminiNode } from './nodes/GeminiNode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { GhostNode } from './nodes/GhostNode';
@@ -257,7 +257,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
-            onClick={() => addNodeManual('gemini')}
+            onClick={() => setGhostMenu({ x: 100, y: 10, parentId: '' })}
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
           >
             <Edit3 size={14} /> Agregar Nodo
