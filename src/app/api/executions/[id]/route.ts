@@ -18,7 +18,7 @@ export async function GET(
     });
 
     if (!execution) {
-      return NextResponse.json({ success: false, error: "Ejecución noxx xencontrada" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Ejecución no encontrada" }, { status: 404 });
     }
 
     return NextResponse.json({
