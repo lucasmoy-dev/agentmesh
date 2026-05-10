@@ -25,6 +25,7 @@ import { GhostNode } from './nodes/GhostNode';
 import { StorageNode } from './nodes/StorageNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { EmailNode } from './nodes/EmailNode';
+import { JoinNode } from './nodes/JoinNode';
 
 const nodeTypes = { 
   gemini: GeminiNode, 
@@ -32,7 +33,9 @@ const nodeTypes = {
   ghost: GhostNode, 
   storage: StorageNode, 
   workflow: WorkflowNode,
-  email: EmailNode 
+  workflow: WorkflowNode,
+  email: EmailNode,
+  join: JoinNode
 };
 
 const defaultEdgeOptions = {
@@ -108,6 +111,18 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     loadData();
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [workflowId]);
+
+  const onEdgesChange = useCallback((changes: any) => {
+    setEdges((eds) => {
+      const updatedEdges = applyNodeChanges(changes, eds) as any;
+      if (changes.some((c: any) => c.type === 'remove')) {
+        const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(nodes, updatedEdges);
+        setNodes(finalNodes);
+        return finalEdges;
+      }
+      return updatedEdges;
+    });
+  }, [nodes]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => {
@@ -238,6 +253,12 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <button onClick={() => router.push('/')} style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '8px', color: 'white', cursor: 'pointer' }}><ChevronLeft size={20} /></button>
           <input type="text" value={workflowName} onChange={(e) => setWorkflowName(e.target.value)} style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', fontWeight: 'bold', color: 'white', outline: 'none', width: '300px' }} />
+          <button 
+            onClick={() => addNodeManual('gemini')}
+            style={{ marginLeft: '12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', color: '#6366f1', padding: '8px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Edit3 size={14} /> Agregar Nodo
+          </button>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button style={{ backgroundColor: isPlaying ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: isPlaying ? '#10b981' : 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={playWorkflow} disabled={isPlaying || isSaving}><Play size={14} fill="currentColor" /> {isPlaying ? 'En progreso...' : 'Probar'}</button>
@@ -247,7 +268,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
       <div style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onConnect={(p) => setNodes(refreshGhostNodes(nodes, addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges))).nodes)} onNodeClick={(e, n) => n.type !== 'ghost' && setSelectedNodeId(n.id)} onPaneClick={() => { setSelectedNodeId(null); setGhostMenu(null); }} nodeTypes={nodeTypes} colorMode="dark" fitView>
+          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={(p) => setNodes(refreshGhostNodes(nodes, addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges))).nodes)} onNodeClick={(e, n) => n.type !== 'ghost' && setSelectedNodeId(n.id)} onPaneClick={() => { setSelectedNodeId(null); setGhostMenu(null); }} nodeTypes={nodeTypes} colorMode="dark" fitView>
             <Background variant={BackgroundVariant.Dots} gap={25} size={1} color="rgba(255,255,255,0.05)" />
             {ghostMenu && (
               <Panel position="top-left" style={{ position: 'absolute', left: ghostMenu.x, top: ghostMenu.y, zIndex: 1000 }}>
@@ -255,8 +276,9 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   {!ghostMenu.parentId && <button onClick={() => addNodeFromGhost('trigger')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Clock size={14} /> Trigger</button>}
                   <button onClick={() => addNodeFromGhost('gemini')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '10px', color: '#a855f7', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Brain size={14} /> Gemini AI</button>
                   <button onClick={() => addNodeFromGhost('email')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '10px', color: '#ec4899', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Mail size={14} /> Enviar Email</button>
-                  <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
+                   <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
                   <button onClick={() => addNodeFromGhost('storage')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Database size={14} /> Guardar DB</button>
+                  <button onClick={() => addNodeFromGhost('join')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Merge size={14} /> Concatenar</button>
                 </div>
               </Panel>
             )}

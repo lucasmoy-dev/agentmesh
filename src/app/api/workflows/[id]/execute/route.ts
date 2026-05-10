@@ -28,13 +28,53 @@ export async function POST(
       data: { workflowId: id, status: "RUNNING" }
     });
 
-    // Worker en background
+    // Worker en background con soporte para paralelismo y sincronización
     (async () => {
-      let currentNode: any = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
-      let lastOutput = "Inicio de ejecución";
+      const queue: { nodeId: string; lastOutput: string }[] = [];
+      const trigger = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
+      if (trigger) queue.push({ nodeId: trigger.id, lastOutput: "Inicio de ejecución" });
 
-      while (currentNode) {
+      while (queue.length > 0) {
+        const { nodeId, lastOutput } = queue.shift()!;
+        const currentNode = workflow.nodes.find((n: any) => n.id === nodeId);
+        if (!currentNode) continue;
+
         const config = currentNode.config as any;
+
+        // Si es un nodo de unión (Join), verificar si todos sus predecesores terminaron
+        if (currentNode.type.toLowerCase().includes("join")) {
+          const incomingEdges = workflow.edges.filter((e: any) => e.targetNodeId === currentNode.id);
+          const finishedSteps = await db.executionStep.findMany({
+            where: { executionId: execution.id, status: "COMPLETED" }
+          });
+          
+          const finishedNodeIds = finishedSteps.map((s: any) => s.nodeId);
+          const allPredecessorsFinished = incomingEdges.every((e: any) => finishedNodeIds.includes(e.sourceNodeId));
+          
+          if (!allPredecessorsFinished) continue; // Esperar a otros inputs
+
+          // Si todos terminaron, concatenamos sus outputs
+          const predecessorOutputs = incomingEdges.map((e: any) => {
+            const step = finishedSteps.find((s: any) => s.nodeId === e.sourceNodeId);
+            return step?.output || "";
+          });
+          // El lastOutput para el Join será la concatenación
+          const joinedOutput = predecessorOutputs.join("\n\n---\n\n");
+          // Ejecutamos la lógica del Join (que es simplemente devolver el joinedOutput)
+          await db.executionStep.create({ data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" } });
+          const step = await db.executionStep.findFirst({ where: { executionId: execution.id, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });
+          await db.executionStep.update({
+            where: { id: step!.id },
+            data: { status: "COMPLETED", output: joinedOutput, finishedAt: new Date() }
+          });
+
+          // Buscar siguientes nodos
+          const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
+          outgoingEdges.forEach((edge: any) => {
+            queue.push({ nodeId: edge.targetNodeId, lastOutput: joinedOutput });
+          });
+          continue;
+        }
 
         const step = await db.executionStep.create({
           data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" }
@@ -47,7 +87,6 @@ export async function POST(
             if (config?.mockEnabled) {
               output = config.mockResponse || "Respuesta Gemini mockeada";
             } else {
-              // Concatenación inteligente: si no hay {{output}}, lo añade al final
               const prompt = config.prompt.includes("{{output}}") 
                 ? config.prompt.replace("{{output}}", lastOutput)
                 : `${config.prompt}\n\n${lastOutput}`;
@@ -71,7 +110,6 @@ export async function POST(
                 create: { label, content: lastOutput }
               });
             }
-            // En mock o real, el output del storage es el passthrough de lo que recibió
             output = lastOutput;
           } else if (currentNode.type.toLowerCase().includes("email")) {
             if (config?.mockEnabled) {
@@ -109,14 +147,16 @@ export async function POST(
             output = "Trigger activado con éxito";
           }
 
-          lastOutput = output;
           await db.executionStep.update({
             where: { id: step.id },
             data: { status: "COMPLETED", output, finishedAt: new Date() }
           });
 
-          const edge: any = workflow.edges.find((e: any) => e.sourceNodeId === currentNode?.id);
-          currentNode = edge ? workflow.nodes.find((n: any) => n.id === edge.targetNodeId) : undefined;
+          // Buscar todos los siguientes nodos (Paralelismo)
+          const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
+          outgoingEdges.forEach((edge: any) => {
+            queue.push({ nodeId: edge.targetNodeId, lastOutput: output });
+          });
 
         } catch (error: any) {
           await db.executionStep.update({
