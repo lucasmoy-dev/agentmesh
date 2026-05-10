@@ -41,7 +41,7 @@ export const TriggerNode = memo(({ data, isConnectable }: NodeProps) => {
         <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.scheduleType as string) || 'MANUAL'}</div>
       </div>
 
-      {!isExecuting && !isFinished && (
+      {!isExecuting && (
         <button 
           style={{
             marginTop: '2px',

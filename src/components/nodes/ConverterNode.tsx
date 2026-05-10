@@ -14,7 +14,7 @@ export const ConverterNode = memo(({ data, isConnectable }: NodeProps) => {
       width: '120px',
       height: '120px',
       backgroundColor: '#18181b',
-      border: isExecuting ? '3px solid #6366f1' : isError ? '3px solid #ef4444' : isFinished ? '2px solid #10b981' : '2px solid #6366f1',
+      border: isExecuting ? '3px solid #6366f1' : isError ? '3px solid #ef4444' : (data.mockEnabled ? '2px dashed #6366f1' : (isFinished ? '2px solid #10b981' : '2px solid #6366f1')),
       borderRadius: '16px',
       display: 'flex',
       flexDirection: 'column',
@@ -43,7 +43,7 @@ export const ConverterNode = memo(({ data, isConnectable }: NodeProps) => {
         {isError && <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 'bold' }}>ERROR</div>}
       </div>
 
-      {!isExecuting && !isFinished && !isError && (
+      {!isExecuting && (
         <button 
           style={{ marginTop: '2px', padding: '4px 12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '6px', color: 'white', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
           onClick={(e) => { e.stopPropagation(); if (data.onEdit) (data.onEdit as Function)(); }}

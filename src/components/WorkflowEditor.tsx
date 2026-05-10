@@ -200,59 +200,76 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
   const playWorkflow = async () => {
     if (isPlaying) return;
+    setIsPlaying(true); // Feedback instantáneo
     setIsSaving(true);
     try {
-      const activeNodes = getRealNodes(nodes);
+      const activeNodes = getRealNodes(nodes).map(n => {
+        const { isExecuting, isFinished, isError, lastExecutionOutput, onEdit, ...cleanData } = n.data;
+        return { ...n, data: cleanData };
+      });
       const activeEdges = getRealEdges(edges);
       await fetch(`/api/workflows/${workflowId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: workflowName, nodes: activeNodes, edges: activeEdges }) });
-    } catch (err) { console.error(err); } finally { setIsSaving(false); }
+    } catch (err) { 
+      console.error(err);
+      setIsPlaying(false);
+      setIsSaving(false);
+      return;
+    } finally { setIsSaving(false); }
 
-    setIsPlaying(true);
     try {
       const res = await fetch(`/api/workflows/${workflowId}/execute`, { method: 'POST' });
       const { executionId, success } = await res.json();
       if (!success) throw new Error("Error al iniciar ejecución");
 
       pollingRef.current = setInterval(async () => {
-        const statusRes = await fetch(`/api/executions/${executionId}`);
-        const data = await statusRes.json();
-        if (!data.success) return;
+        try {
+          const statusRes = await fetch(`/api/executions/${executionId}`);
+          const data = await statusRes.json();
+          if (!data.success) return;
 
-        setNodes(nds => nds.map(n => {
-          const step = data.steps.find((s: any) => s.nodeId === n.id);
-          if (!step) return n;
-          
-          // Si el nodo está esperando confirmación (Debug Alert), abrimos el modal
-          if (step.status === 'WAITING' && !debugAlert) {
-            setDebugAlert({ executionId, nodeId: n.id, content: step.output || '' });
+          setNodes(nds => nds.map(n => {
+            const step = data.steps.find((s: any) => s.nodeId === n.id);
+            if (!step) return n;
+            
+            if (step.status === 'WAITING' && !debugAlert) {
+              setDebugAlert({ executionId, nodeId: n.id, content: step.output || '' });
+            }
+
+            return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING' || step.status === 'WAITING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
+          }));
+
+          setEdges(eds => eds.map(e => {
+            const sourceStep = data.steps.find((s: any) => s.nodeId === e.source);
+            if (sourceStep?.status === 'COMPLETED') return { ...e, style: { ...e.style, stroke: '#10b981', strokeWidth: 4 }, animated: true };
+            return e;
+          }));
+
+          if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            setIsPlaying(false);
+            setTimeout(() => {
+              setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isExecuting: false, isFinished: false, isError: false } })));
+              setEdges(eds => eds.map(e => ({ ...e, ...defaultEdgeOptions })));
+            }, 10000);
           }
-
-          return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING' || step.status === 'WAITING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
-        }));
-
-        setEdges(eds => eds.map(e => {
-          const sourceStep = data.steps.find((s: any) => s.nodeId === e.source);
-          if (sourceStep?.status === 'COMPLETED') return { ...e, style: { ...e.style, stroke: '#10b981', strokeWidth: 4 }, animated: true };
-          return e;
-        }));
-
-        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          setIsPlaying(false);
-          // Opcional: Limpiar estados visuales después de un tiempo
-          setTimeout(() => {
-            setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isExecuting: false, isFinished: false, isError: false } })));
-            setEdges(eds => eds.map(e => ({ ...e, ...defaultEdgeOptions })));
-          }, 10000);
+        } catch (err) {
+          console.error("Error polling execution status:", err);
         }
       }, 1000);
-    } catch (err: any) { alert(`Error: ${err.message}`); setIsPlaying(false); }
+    } catch (err: any) { 
+      alert(`Error: ${err.message}`); 
+      setIsPlaying(false); 
+      setIsSaving(false);
+    }
   };
 
   const saveWorkflow = async () => {
     setIsSaving(true);
     try {
-      const activeNodes = getRealNodes(nodes);
+      const activeNodes = getRealNodes(nodes).map(n => {
+        const { isExecuting, isFinished, isError, lastExecutionOutput, onEdit, ...cleanData } = n.data;
+        return { ...n, data: cleanData };
+      });
       const activeEdges = getRealEdges(edges);
       await fetch(`/api/workflows/${workflowId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: workflowName, nodes: activeNodes, edges: activeEdges }) });
       setSelectedNodeId(null);
@@ -525,7 +542,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   <input type="text" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.label as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
                 </div>
               )}
-              {(selectedNode.type?.toLowerCase() === 'converter' || selectedNode.type?.toLowerCase() === 'join') && (
+              {(selectedNode.type?.toLowerCase().includes('converter') || selectedNode.type?.toLowerCase() === 'join') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6366f1', display: 'block', marginBottom: '8px' }}>PLANTILLA DE TEXTO</label>

@@ -39,10 +39,16 @@ export async function POST(
         const currentNode = workflow.nodes.find((n: any) => n.id === nodeId);
         if (!currentNode) continue;
 
+        // Evitar procesar el mismo nodo varias veces (ej: cuando varios nodos van a un Converter)
+        const alreadyProcessed = await db.executionStep.findFirst({
+          where: { executionId: execution.id, nodeId: currentNode.id, status: "COMPLETED" }
+        });
+        if (alreadyProcessed) continue;
+
         const config = currentNode.config as any;
 
         // Si es un nodo de conversión (Converter), aplicar plantilla
-        if (currentNode.type.toLowerCase().includes("converter")) {
+        if (currentNode.type.toLowerCase().includes("converter") || currentNode.type.toLowerCase().includes("join")) {
           const incomingEdges = workflow.edges.filter((e: any) => e.targetNodeId === currentNode.id);
           const finishedSteps = await db.executionStep.findMany({
             where: { executionId: execution.id, status: "COMPLETED" }
@@ -55,20 +61,27 @@ export async function POST(
 
           // Si todos terminaron, aplicamos la plantilla
           let finalOutput = config.template || "";
+          console.log(` [CONVERTER] Aplicando plantilla: "${finalOutput}"`);
           
           for (const edge of incomingEdges) {
             const sourceNode = workflow.nodes.find((n: any) => n.id === edge.sourceNodeId);
             const step = finishedSteps.find((s: any) => s.nodeId === edge.sourceNodeId);
             if (sourceNode && step) {
               const nodeName = sourceNode.name || sourceNode.type;
-              finalOutput = finalOutput.replace(new RegExp(`{{${nodeName}}}`, 'g'), step.output || "");
+              const tag = `{{${nodeName}}}`;
+              const replacement = step.output || "";
+              console.log(` [CONVERTER] Reemplazando tag ${tag} por contenido (${replacement.length} chars)`);
+              finalOutput = finalOutput.split(tag).join(replacement);
             }
           }
 
           // Si la plantilla está vacía, hacemos el join por defecto
-          if (!config.template) {
-            finalOutput = incomingEdges.map(e => finishedSteps.find(s => s.nodeId === e.sourceNodeId)?.output || "").join("\n\n");
+          if (!config.template || finalOutput.trim() === "") {
+            console.log(` [CONVERTER] Plantilla vacía o sin tags, aplicando concatenación por defecto.`);
+            finalOutput = incomingEdges.map((e: any) => finishedSteps.find((s: any) => s.nodeId === e.sourceNodeId)?.output || "").join("\n\n");
           }
+
+          console.log(` [CONVERTER] Output final: ${finalOutput.substring(0, 50)}...`);
 
           await db.executionStep.create({ data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" } });
           const step = await db.executionStep.findFirst({ where: { executionId: execution.id, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });
@@ -134,21 +147,23 @@ export async function POST(
                 auth: { user: settings.SMTP_USER, pass: settings.SMTP_PASS }
               });
 
-              const now = new Date();
-              const dateStr = now.toLocaleDateString('es-ES');
-              const dateTimeStr = now.toLocaleString('es-ES');
-              
-              let body = (config.body || "")
-                .replace(/{{output}}/g, lastOutput)
-                .replace(/{{fecha}}/g, dateStr)
-                .replace(/{{fecha_hora}}/g, dateTimeStr)
-                .replace(/{{workflow_name}}/g, workflow.name);
+              const replaceVars = (text: string) => {
+                if (!text) return "";
+                return text
+                  .split("{{output}}").join(lastOutput)
+                  .split("{{fecha}}").join(new Date().toLocaleDateString())
+                  .split("{{fecha_hora}}").join(new Date().toLocaleString())
+                  .split("{{workflow_name}}").join(workflow.name);
+              };
+
+              const subject = replaceVars(config.subject || "Workflow Notification");
+              const body = replaceVars(config.body || lastOutput);
 
               await transporter.sendMail({
-                from: settings.SMTP_FROM || settings.SMTP_USER,
+                from: `"AgentMesh" <${settings.SMTP_USER}>`,
                 to: config.to,
-                subject: config.subject || "AgentMesh Notification",
-                text: body
+                subject: subject,
+                html: body.replace(/\n/g, "<br>"),
               });
               output = `Email enviado con éxito a ${config.to}`;
             }
@@ -213,6 +228,15 @@ export async function POST(
 
     return NextResponse.json({ success: true, executionId: execution.id });
   } catch (error: any) {
+    console.error(error);
+    // Actualizar el estado de la ejecución a FAILED
+    try {
+      await db.workflowExecution.update({
+        where: { id: execution.id },
+        data: { status: "FAILED" }
+      });
+    } catch (dbErr) { console.error("Error updating execution status to FAILED", dbErr); }
+    
     return NextResponse.json({ success: false, error: error.message });
   }
 }
