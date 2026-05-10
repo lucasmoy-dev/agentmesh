@@ -47,7 +47,11 @@ export async function POST(
             output = config.mockResponse || "Respuesta mockeada vacía";
           } else {
             if (currentNode.type.toLowerCase().includes("gemini")) {
-              const prompt = config.prompt.replace("{{output}}", lastOutput);
+              // Concatenación inteligente: si no hay {{output}}, lo añade al final
+              const prompt = config.prompt.includes("{{output}}") 
+                ? config.prompt.replace("{{output}}", lastOutput)
+                : `${config.prompt}\n\n${lastOutput}`;
+
               console.log(` [GEMINI] Llamando a gemini-3-flash-preview (v1beta)...`);
               const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent", {
                 method: "POST",
@@ -66,6 +70,7 @@ export async function POST(
                   create: { label, content: lastOutput }
                 });
               }
+              // En mock, el output sigue siendo lo que recibió (passthrough)
               output = lastOutput;
             } else if (currentNode.type.toLowerCase().includes("email")) {
               if (!settings.SMTP_HOST || !settings.SMTP_USER || !settings.SMTP_PASS) {
@@ -96,7 +101,7 @@ export async function POST(
               });
               output = `Email enviado con éxito a ${config.to}`;
             } else if (currentNode.type.toLowerCase().includes("trigger")) {
-              output = "Trigger activado";
+              output = "Trigger activado con éxito";
             }
           }
 

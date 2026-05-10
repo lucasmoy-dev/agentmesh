@@ -96,7 +96,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           id: n.id,
           type: n.type.toLowerCase().includes('workflow') ? 'workflow' : n.type.toLowerCase(),
           position: { x: n.positionX, y: n.positionY },
-          data: { ...n.config, onEdit: () => setSelectedNodeId(n.id) },
+          data: { ...n.config, name: n.name || n.type, onEdit: () => setSelectedNodeId(n.id) },
         }));
         const mappedEdges = data.edges.map((e: any) => ({ id: e.id, source: e.sourceNodeId, target: e.targetNodeId, ...defaultEdgeOptions }));
         const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(mappedNodes, mappedEdges);
@@ -269,6 +269,20 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
             <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Propiedades</h3>
               <button onClick={() => setSelectedNodeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3 }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>NOMBRE DEL NODO</label>
+              <div style={{ position: 'relative' }}>
+                <Edit3 size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                <input 
+                  type="text" 
+                  value={selectedNode.data.name as string || ""} 
+                  onChange={(e) => updateNodeData(selectedNode.id, { name: e.target.value })} 
+                  placeholder="Ej: Buscar noticias..."
+                  style={{ width: '100%', padding: '12px 12px 12px 36px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '14px' }}
+                />
+              </div>
             </div>
             
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>

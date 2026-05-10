@@ -39,7 +39,7 @@ export const EmailNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Email</div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Enviar Email'}</div>
         {isError && <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 'bold' }}>ERROR</div>}
       </div>
 

@@ -46,7 +46,7 @@ export async function PATCH(
             id: n.id,
             workflowId: id,
             type: n.type || "DEFAULT",
-            name: n.data.label || n.type,
+            name: n.data.name || n.type,
             config: n.data || {},
             positionX: n.position.x,
             positionY: n.position.y

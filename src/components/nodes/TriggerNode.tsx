@@ -37,8 +37,8 @@ export const TriggerNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Trigger</div>
-        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.type as string) || 'MANUAL'}</div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Trigger'}</div>
+        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.scheduleType as string) || 'MANUAL'}</div>
       </div>
 
       {!isExecuting && !isFinished && (

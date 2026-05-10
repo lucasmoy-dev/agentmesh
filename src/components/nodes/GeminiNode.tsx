@@ -39,7 +39,7 @@ export const GeminiNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Gemini AI</div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Gemini AI'}</div>
         {isError && <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 'bold' }}>ERROR</div>}
       </div>
 

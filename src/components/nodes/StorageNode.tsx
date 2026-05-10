@@ -39,8 +39,8 @@ export const StorageNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Guardar DB</div>
-        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.label as string) || 'marmota'}</div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Guardar DB'}</div>
+        {isError && <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 'bold' }}>ERROR</div>}
       </div>
 
       {!isExecuting && !isFinished && !isError && (
