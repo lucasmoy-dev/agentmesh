@@ -46,35 +46,37 @@ export function calculateNextExecution(config: ScheduleConfig, from: Date = new 
 
 let schedulerStarted = false;
 
+export async function checkAndRunWorkflows(origin: string) {
+  try {
+    const now = new Date();
+    const workflows = await db.workflow.findMany({
+      where: { enabled: true },
+      include: { nodes: true }
+    });
+
+    for (const workflow of workflows) {
+      const trigger = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
+      if (!trigger) continue;
+
+      const config = trigger.config as any;
+      if (!config || config.scheduleType === "MANUAL") continue;
+
+      if (shouldRun(config, now)) {
+        console.log(` [SCHEDULER] Disparando workflow: ${workflow.name} (${workflow.id})`);
+        fetch(`${origin}/api/workflows/${workflow.id}/execute`, { method: "POST" }).catch(e => console.error(e));
+      }
+    }
+  } catch (error) {
+    console.error(" [SCHEDULER ERROR]", error);
+  }
+}
+
 export function startScheduler(origin: string) {
   if (schedulerStarted) return;
   schedulerStarted = true;
-  console.log(" [SCHEDULER] Iniciando motor de triggers en background (DB Mode)...");
+  console.log(" [SCHEDULER] Iniciando motor de triggers en background (Local Mode)...");
 
-  setInterval(async () => {
-    try {
-      const now = new Date();
-      const workflows = await db.workflow.findMany({
-        where: { enabled: true },
-        include: { nodes: true }
-      });
-
-      for (const workflow of workflows) {
-        const trigger = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
-        if (!trigger) continue;
-
-        const config = trigger.config as any;
-        if (!config || config.scheduleType === "MANUAL") continue;
-
-        if (shouldRun(config, now)) {
-          console.log(` [SCHEDULER] Disparando workflow: ${workflow.name} (${workflow.id})`);
-          fetch(`${origin}/api/workflows/${workflow.id}/execute`, { method: "POST" }).catch(e => console.error(e));
-        }
-      }
-    } catch (error) {
-      console.error(" [SCHEDULER ERROR]", error);
-    }
-  }, 60000);
+  setInterval(() => checkAndRunWorkflows(origin), 60000);
 }
 
 function shouldRun(config: any, now: Date): boolean {
