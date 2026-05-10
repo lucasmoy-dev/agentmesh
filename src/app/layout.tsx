@@ -25,7 +25,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <div className="layout-wrapper">
           {/* Sidebar */}

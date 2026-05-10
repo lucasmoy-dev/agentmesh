@@ -320,7 +320,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
             <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Propiedades</h3>
-              <button onClick={() => setSelectedNodeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3 }}><X size={20} /></button>
+              <button onClick={() => setSelectedNodeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3, cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
             <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -475,8 +475,8 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
             </div>
             
             <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button onClick={saveWorkflow} style={{ width: '100%', padding: '12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}>Guardar</button>
-              <button onClick={deleteSelectedNode} style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold' }}>Eliminar</button>
+              <button onClick={saveWorkflow} style={{ width: '100%', padding: '12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>Guardar</button>
+              <button onClick={deleteSelectedNode} style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}>Eliminar</button>
             </div>
           </div>
         )}
@@ -485,7 +485,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
             <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Conexión</h3>
-              <button onClick={() => setSelectedEdgeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3 }}><X size={20} /></button>
+              <button onClick={() => setSelectedEdgeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3, cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
             <div style={{ padding: '24px', flex: 1 }}>
