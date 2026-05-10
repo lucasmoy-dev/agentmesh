@@ -43,10 +43,10 @@ export async function POST(
         try {
           let output = "";
 
-          if (config?.mockEnabled) {
-            output = config.mockResponse || "Respuesta mockeada vacía";
-          } else {
-            if (currentNode.type.toLowerCase().includes("gemini")) {
+          if (currentNode.type.toLowerCase().includes("gemini")) {
+            if (config?.mockEnabled) {
+              output = config.mockResponse || "Respuesta Gemini mockeada";
+            } else {
               // Concatenación inteligente: si no hay {{output}}, lo añade al final
               const prompt = config.prompt.includes("{{output}}") 
                 ? config.prompt.replace("{{output}}", lastOutput)
@@ -61,18 +61,22 @@ export async function POST(
               const json = await res.json();
               if (json.error) throw new Error(`API Error ${json.error.code}: ${JSON.stringify(json.error)}`);
               output = json.candidates[0].content.parts[0].text;
-            } else if (currentNode.type.toLowerCase().includes("storage")) {
-              const label = config.label || "default";
-              if (!config.mockEnabled) {
-                await db.storedData.upsert({
-                  where: { label },
-                  update: { content: lastOutput, updatedAt: new Date() },
-                  create: { label, content: lastOutput }
-                });
-              }
-              // En mock, el output sigue siendo lo que recibió (passthrough)
-              output = lastOutput;
-            } else if (currentNode.type.toLowerCase().includes("email")) {
+            }
+          } else if (currentNode.type.toLowerCase().includes("storage")) {
+            const label = config.label || "default";
+            if (!config.mockEnabled) {
+              await db.storedData.upsert({
+                where: { label },
+                update: { content: lastOutput, updatedAt: new Date() },
+                create: { label, content: lastOutput }
+              });
+            }
+            // En mock o real, el output del storage es el passthrough de lo que recibió
+            output = lastOutput;
+          } else if (currentNode.type.toLowerCase().includes("email")) {
+            if (config?.mockEnabled) {
+              output = config.mockResponse || `[MOCK] Email enviado a ${config.to}`;
+            } else {
               if (!settings.SMTP_HOST || !settings.SMTP_USER || !settings.SMTP_PASS) {
                 throw new Error("Configuración SMTP incompleta en Ajustes.");
               }
@@ -100,9 +104,9 @@ export async function POST(
                 text: body
               });
               output = `Email enviado con éxito a ${config.to}`;
-            } else if (currentNode.type.toLowerCase().includes("trigger")) {
-              output = "Trigger activado con éxito";
             }
+          } else if (currentNode.type.toLowerCase().includes("trigger")) {
+            output = "Trigger activado con éxito";
           }
 
           lastOutput = output;
