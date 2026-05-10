@@ -18,14 +18,14 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge, Bug } from 'lucide-react';
+import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge, Bug, FileText } from 'lucide-react';
 import { GeminiNode } from './nodes/GeminiNode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { GhostNode } from './nodes/GhostNode';
 import { StorageNode } from './nodes/StorageNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { EmailNode } from './nodes/EmailNode';
-import { JoinNode } from './nodes/JoinNode';
+import { ConverterNode } from './nodes/ConverterNode';
 import { DebugNode } from './nodes/DebugNode';
 
 const nodeTypes = { 
@@ -35,7 +35,8 @@ const nodeTypes = {
   storage: StorageNode, 
   workflow: WorkflowNode,
   email: EmailNode,
-  join: JoinNode,
+  converter: ConverterNode,
+  join: ConverterNode,
   debug: DebugNode
 };
 
@@ -320,7 +321,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   <button onClick={() => addNodeFromGhost('email')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '10px', color: '#ec4899', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Mail size={14} /> Enviar Email</button>
                    <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
                   <button onClick={() => addNodeFromGhost('storage')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Database size={14} /> Guardar DB</button>
-                  <button onClick={() => addNodeFromGhost('join')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Merge size={14} /> Concatenar</button>
+                  <button onClick={() => addNodeFromGhost('converter')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><FileText size={14} /> Convertir Texto</button>
                   <button onClick={() => addNodeFromGhost('debug')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '10px', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Bug size={14} /> Alert Debug</button>
                 </div>
               </Panel>
@@ -331,8 +332,8 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
         {/* MODAL DEBUG */}
         {debugAlert && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
-            <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#18181b', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+          <div className="animate-fade-in" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
+            <div className="animate-modal-in" style={{ width: '100%', maxWidth: '600px', backgroundColor: '#18181b', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '16px', color: '#f59e0b' }}>
                   <Bug size={32} />
@@ -522,6 +523,38 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'white' }}>ID ALMACENAMIENTO</label>
                   <input type="text" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.label as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
+                </div>
+              )}
+              {(selectedNode.type?.toLowerCase() === 'converter' || selectedNode.type?.toLowerCase() === 'join') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6366f1', display: 'block', marginBottom: '8px' }}>PLANTILLA DE TEXTO</label>
+                    <div style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {edges.filter(e => e.target === selectedNode.id).map(edge => {
+                        const sourceNode = nodes.find(n => n.id === edge.source);
+                        if (!sourceNode) return null;
+                        const nodeName = (sourceNode.data.name as string) || sourceNode.type || 'Nodo';
+                        return (
+                          <button 
+                            key={edge.id}
+                            onClick={() => {
+                              const current = (selectedNode.data.template as string) || "";
+                              updateNodeData(selectedNode.id, { template: current + `{{${nodeName}}}` });
+                            }}
+                            style={{ padding: '6px 12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '8px', color: '#6366f1', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                          >
+                            + {nodeName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <textarea 
+                      placeholder="Usa los botones de arriba para combinar outputs..." 
+                      style={{ width: '100%', height: '200px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} 
+                      value={(selectedNode.data.template as string) || ""} 
+                      onChange={(e) => updateNodeData(selectedNode.id, { template: e.target.value })} 
+                    />
+                  </div>
                 </div>
               )}
             </div>

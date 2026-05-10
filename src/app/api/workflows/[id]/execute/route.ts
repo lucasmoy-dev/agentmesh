@@ -41,8 +41,8 @@ export async function POST(
 
         const config = currentNode.config as any;
 
-        // Si es un nodo de unión (Join), verificar si todos sus predecesores terminaron
-        if (currentNode.type.toLowerCase().includes("join")) {
+        // Si es un nodo de conversión (Converter), aplicar plantilla
+        if (currentNode.type.toLowerCase().includes("converter")) {
           const incomingEdges = workflow.edges.filter((e: any) => e.targetNodeId === currentNode.id);
           const finishedSteps = await db.executionStep.findMany({
             where: { executionId: execution.id, status: "COMPLETED" }
@@ -53,25 +53,34 @@ export async function POST(
           
           if (!allPredecessorsFinished) continue; // Esperar a otros inputs
 
-          // Si todos terminaron, concatenamos sus outputs
-          const predecessorOutputs = incomingEdges.map((e: any) => {
-            const step = finishedSteps.find((s: any) => s.nodeId === e.sourceNodeId);
-            return step?.output || "";
-          });
-          // El lastOutput para el Join será la concatenación
-          const joinedOutput = predecessorOutputs.join("\n\n");
-          // Ejecutamos la lógica del Join (que es simplemente devolver el joinedOutput)
+          // Si todos terminaron, aplicamos la plantilla
+          let finalOutput = config.template || "";
+          
+          for (const edge of incomingEdges) {
+            const sourceNode = workflow.nodes.find((n: any) => n.id === edge.sourceNodeId);
+            const step = finishedSteps.find((s: any) => s.nodeId === edge.sourceNodeId);
+            if (sourceNode && step) {
+              const nodeName = sourceNode.name || sourceNode.type;
+              finalOutput = finalOutput.replace(new RegExp(`{{${nodeName}}}`, 'g'), step.output || "");
+            }
+          }
+
+          // Si la plantilla está vacía, hacemos el join por defecto
+          if (!config.template) {
+            finalOutput = incomingEdges.map(e => finishedSteps.find(s => s.nodeId === e.sourceNodeId)?.output || "").join("\n\n");
+          }
+
           await db.executionStep.create({ data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" } });
           const step = await db.executionStep.findFirst({ where: { executionId: execution.id, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });
           await db.executionStep.update({
             where: { id: step!.id },
-            data: { status: "COMPLETED", output: joinedOutput, finishedAt: new Date() }
+            data: { status: "COMPLETED", output: finalOutput, finishedAt: new Date() }
           });
 
           // Buscar siguientes nodos
           const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
           outgoingEdges.forEach((edge: any) => {
-            queue.push({ nodeId: edge.targetNodeId, lastOutput: joinedOutput });
+            queue.push({ nodeId: edge.targetNodeId, lastOutput: finalOutput });
           });
           continue;
         }
