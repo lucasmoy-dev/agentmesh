@@ -14,6 +14,7 @@ import {
   Panel,
   MarkerType,
   applyNodeChanges,
+  applyEdgeChanges,
   NodeChange,
   BackgroundVariant,
 } from '@xyflow/react';
@@ -119,7 +120,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
   const onEdgesChange = useCallback((changes: any) => {
     setEdges((eds) => {
-      const updatedEdges = applyNodeChanges(changes, eds) as any;
+      const updatedEdges = applyEdgeChanges(changes, eds) as any;
       if (changes.some((c: any) => c.type === 'remove')) {
         const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(nodes, updatedEdges);
         setNodes(finalNodes);
