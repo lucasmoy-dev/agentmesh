@@ -15,6 +15,7 @@ export async function POST(
 ) {
   const { id } = await params;
 
+  let executionId: string | null = null;
   try {
     const settings = await getSettings();
     const workflow = await db.workflow.findUnique({
@@ -27,6 +28,7 @@ export async function POST(
     const execution = await db.workflowExecution.create({
       data: { workflowId: id, status: "RUNNING" }
     });
+    executionId = execution.id;
 
     // Worker en background con soporte para paralelismo y sincronización
     (async () => {
@@ -41,7 +43,7 @@ export async function POST(
 
         // Evitar procesar el mismo nodo varias veces (ej: cuando varios nodos van a un Converter)
         const alreadyProcessed = await db.executionStep.findFirst({
-          where: { executionId: execution.id, nodeId: currentNode.id, status: "COMPLETED" }
+          where: { executionId: executionId!, nodeId: currentNode.id, status: "COMPLETED" }
         });
         if (alreadyProcessed) continue;
 
@@ -51,7 +53,7 @@ export async function POST(
         if (currentNode.type.toLowerCase().includes("converter") || currentNode.type.toLowerCase().includes("join")) {
           const incomingEdges = workflow.edges.filter((e: any) => e.targetNodeId === currentNode.id);
           const finishedSteps = await db.executionStep.findMany({
-            where: { executionId: execution.id, status: "COMPLETED" }
+            where: { executionId: executionId!, status: "COMPLETED" }
           });
           
           const finishedNodeIds = finishedSteps.map((s: any) => s.nodeId);
@@ -83,8 +85,8 @@ export async function POST(
 
           console.log(` [CONVERTER] Output final: ${finalOutput.substring(0, 50)}...`);
 
-          await db.executionStep.create({ data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" } });
-          const step = await db.executionStep.findFirst({ where: { executionId: execution.id, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });
+          await db.executionStep.create({ data: { executionId: executionId!, nodeId: currentNode.id, status: "RUNNING" } });
+          const step = await db.executionStep.findFirst({ where: { executionId: executionId!, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });
           await db.executionStep.update({
             where: { id: step!.id },
             data: { status: "COMPLETED", output: finalOutput, finishedAt: new Date() }
@@ -99,20 +101,18 @@ export async function POST(
         }
 
         const step = await db.executionStep.create({
-          data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" }
+          data: { executionId: executionId!, nodeId: currentNode.id, status: "RUNNING" }
         });
 
         try {
           let output = "";
 
           if (currentNode.type.toLowerCase().includes("gemini")) {
+            const prompt = config.prompt.split("{{output}}").join(lastOutput);
             if (config?.mockEnabled) {
               output = config.mockResponse || "Respuesta Gemini mockeada";
             } else {
-              const prompt = config.prompt.includes("{{output}}") 
-                ? config.prompt.replace("{{output}}", lastOutput)
-                : `${config.prompt}\n\n${lastOutput}`;
-
+              if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");
               console.log(` [GEMINI] Llamando a gemini-3-flash-preview (v1beta)...`);
               const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent", {
                 method: "POST",
@@ -168,32 +168,30 @@ export async function POST(
               output = `Email enviado con éxito a ${config.to}`;
             }
           } else if (currentNode.type.toLowerCase().includes("trigger")) {
-            output = "Trigger activado con éxito";
+            output = lastOutput;
+          } else if (currentNode.type.toLowerCase().includes("workflow")) {
+            if (config.subWorkflowId) {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/workflows/${config.subWorkflowId}/execute`, { method: "POST" });
+              const json = await res.json();
+              output = `Sub-Workflow ejecutado: ${json.executionId}`;
+            } else {
+              output = "No hay sub-workflow configurado";
+            }
           } else if (currentNode.type.toLowerCase().includes("debug")) {
-            // Lógica de Alerta Debug (Pausa el motor hasta que el usuario acepte)
             await db.executionStep.update({
               where: { id: step.id },
               data: { status: "WAITING", output: lastOutput }
             });
 
-            // Esperar a que el status sea COMPLETED (confirmado por el usuario en el frontend)
             let confirmed = false;
             while (!confirmed) {
               await new Promise(r => setTimeout(r, 1000));
               const currentStep = await db.executionStep.findUnique({ where: { id: step.id } });
               if (currentStep?.status === "COMPLETED") {
                 confirmed = true;
-                output = lastOutput; // El debug no modifica el output
-              } else if (currentStep?.status === "FAILED") {
-                throw new Error("Ejecución cancelada en el nodo Debug");
+                output = lastOutput;
               }
             }
-            // Ya se marcó como COMPLETED por el endpoint de confirmación, así que saltamos el update final
-            const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
-            outgoingEdges.forEach((edge: any) => {
-              queue.push({ nodeId: edge.targetNodeId, lastOutput: output });
-            });
-            continue; 
           }
 
           await db.executionStep.update({
@@ -201,7 +199,6 @@ export async function POST(
             data: { status: "COMPLETED", output, finishedAt: new Date() }
           });
 
-          // Buscar todos los siguientes nodos (Paralelismo)
           const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
           outgoingEdges.forEach((edge: any) => {
             queue.push({ nodeId: edge.targetNodeId, lastOutput: output });
@@ -212,30 +209,35 @@ export async function POST(
             where: { id: step.id },
             data: { status: "FAILED", output: `Error: ${error.message}`, finishedAt: new Date() }
           });
-          await db.workflowExecution.update({
-            where: { id: execution.id },
-            data: { status: "FAILED" }
-          });
+          if (executionId) {
+            await db.workflowExecution.update({
+              where: { id: executionId },
+              data: { status: "FAILED" }
+            });
+          }
           return;
         }
       }
 
-      await db.workflowExecution.update({
-        where: { id: execution.id },
-        data: { status: "COMPLETED" }
-      });
+      if (executionId) {
+        await db.workflowExecution.update({
+          where: { id: executionId },
+          data: { status: "COMPLETED" }
+        });
+      }
     })();
 
-    return NextResponse.json({ success: true, executionId: execution.id });
+    return NextResponse.json({ success: true, executionId: executionId });
   } catch (error: any) {
     console.error(error);
-    // Actualizar el estado de la ejecución a FAILED
-    try {
-      await db.workflowExecution.update({
-        where: { id: execution.id },
-        data: { status: "FAILED" }
-      });
-    } catch (dbErr) { console.error("Error updating execution status to FAILED", dbErr); }
+    if (executionId) {
+      try {
+        await db.workflowExecution.update({
+          where: { id: executionId },
+          data: { status: "FAILED" }
+        });
+      } catch (dbErr) { console.error("Error updating execution status to FAILED", dbErr); }
+    }
     
     return NextResponse.json({ success: false, error: error.message });
   }
