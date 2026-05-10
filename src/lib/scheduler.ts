@@ -60,7 +60,7 @@ export function startScheduler(origin: string) {
       });
 
       for (const workflow of workflows) {
-        const trigger = workflow.nodes.find(n => n.type.toLowerCase().includes("trigger"));
+        const trigger = workflow.nodes.find((n: any) => n.type.toLowerCase().includes("trigger"));
         if (!trigger) continue;
 
         const config = trigger.config as any;

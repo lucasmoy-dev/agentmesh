@@ -284,8 +284,8 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                       <span className="slider round"></span>
                     </label>
                   </div>
-                  {selectedNode.data.mockEnabled && selectedNode.type !== 'storage' && (
-                    <textarea placeholder="Respuesta simulada..." style={{ width: '100%', height: '80px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px', color: '#10b981', fontSize: '12px', fontFamily: 'monospace' }} value={selectedNode.data.mockResponse || ""} onChange={(e) => updateNodeData(selectedNode.id, { mockResponse: e.target.value })} />
+                  {!!selectedNode.data.mockEnabled && selectedNode.type !== 'storage' && (
+                    <textarea placeholder="Respuesta simulada..." style={{ width: '100%', height: '80px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px', color: '#10b981', fontSize: '12px', fontFamily: 'monospace' }} value={(selectedNode.data.mockResponse as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { mockResponse: e.target.value })} />
                   )}
                 </div>
               )}
@@ -294,11 +294,11 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#ec4899', display: 'block', marginBottom: '8px' }}>DESTINATARIO (TO)</label>
-                    <input type="text" placeholder="ejemplo@correo.com" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={selectedNode.data.to || ""} onChange={(e) => updateNodeData(selectedNode.id, { to: e.target.value })} />
+                    <input type="text" placeholder="ejemplo@correo.com" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.to as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { to: e.target.value })} />
                   </div>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#ec4899', display: 'block', marginBottom: '8px' }}>ASUNTO (SUBJECT)</label>
-                    <input type="text" placeholder="Asunto del correo" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={selectedNode.data.subject || ""} onChange={(e) => updateNodeData(selectedNode.id, { subject: e.target.value })} />
+                    <input type="text" placeholder="Asunto del correo" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.subject as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { subject: e.target.value })} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -310,7 +310,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                         <button onClick={() => insertVariable('workflow_name')} title="Nombre Workflow" style={{ padding: '2px 6px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white', fontSize: '9px', cursor: 'pointer' }}>Nombre</button>
                       </div>
                     </div>
-                    <textarea placeholder="Escribe tu mensaje aquí..." style={{ width: '100%', height: '150px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '13px' }} value={selectedNode.data.body || ""} onChange={(e) => updateNodeData(selectedNode.id, { body: e.target.value })} />
+                    <textarea placeholder="Escribe tu mensaje aquí..." style={{ width: '100%', height: '150px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.body as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { body: e.target.value })} />
                     <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>Usa los botones de arriba para insertar variables dinámicas.</p>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>TIPO DE TRIGGER</label>
-                    <select style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={selectedNode.data.scheduleType || "MANUAL"} onChange={(e) => updateNodeData(selectedNode.id, { scheduleType: e.target.value })}>
+                    <select style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.scheduleType as string) || "MANUAL"} onChange={(e) => updateNodeData(selectedNode.id, { scheduleType: e.target.value })}>
                       <option value="MANUAL">Manual (Solo botón Play)</option>
                       <option value="DAILY">Diario (Cada día)</option>
                       <option value="WEEKLY">Semanal (Días específicos)</option>
@@ -334,13 +334,13 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
               {selectedNode.type === 'gemini' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
-                  <textarea style={{ width: '100%', height: '250px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={selectedNode.data.prompt || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
+                  <textarea style={{ width: '100%', height: '250px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>
               )}
               {selectedNode.type === 'workflow' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#34d399' }}>SUB-WORKFLOW</label>
-                  <select style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={selectedNode.data.subWorkflowId || ""} onChange={(e) => updateNodeData(selectedNode.id, { subWorkflowId: e.target.value, subWorkflowName: availableWorkflows.find(w => w.id === e.target.value)?.name || '' })}>
+                  <select style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.subWorkflowId as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { subWorkflowId: e.target.value, subWorkflowName: availableWorkflows.find(w => w.id === e.target.value)?.name || '' })}>
                     <option value="">Selecciona...</option>
                     {availableWorkflows.map((wf: any) => <option key={wf.id} value={wf.id}>{wf.name}</option>)}
                   </select>
@@ -349,7 +349,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
               {selectedNode.type === 'storage' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'white' }}>ID ALMACENAMIENTO</label>
-                  <input type="text" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={selectedNode.data.label || ""} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
+                  <input type="text" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.label as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
                 </div>
               )}
             </div>
