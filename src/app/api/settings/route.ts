@@ -28,7 +28,7 @@ async function migrateFileToDb() {
 
 export async function GET() {
   try {
-    await migrateFileToDb(); // Intentar migrar si existe el archivo
+    // La migración automática se ha desactivado para evitar sobrescribir la DB con archivos locales obsoletos.
     
     const settings = await db.systemSetting.findMany();
     const config: Record<string, string> = {};
