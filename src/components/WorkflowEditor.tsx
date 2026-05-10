@@ -235,15 +235,16 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           return e;
         }));
 
-        if (data.status !== 'RUNNING') {
+        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
           if (pollingRef.current) clearInterval(pollingRef.current);
           setIsPlaying(false);
+          // Opcional: Limpiar estados visuales después de un tiempo
           setTimeout(() => {
             setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isExecuting: false, isFinished: false, isError: false } })));
             setEdges(eds => eds.map(e => ({ ...e, ...defaultEdgeOptions })));
           }, 10000);
         }
-      }, 2000);
+      }, 1000);
     } catch (err: any) { alert(`Error: ${err.message}`); setIsPlaying(false); }
   };
 
@@ -330,7 +331,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
         {/* MODAL DEBUG */}
         {debugAlert && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zHeindex: 10000, padding: '20px' }}>
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
             <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#18181b', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '16px', color: '#f59e0b' }}>
