@@ -329,6 +329,60 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                       <option value="ONCE">Una vez (Fecha y hora)</option>
                     </select>
                   </div>
+
+                  {selectedNode.data.scheduleType !== 'MANUAL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* TIME INPUT */}
+                      <div>
+                        <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>HORA DE EJECUCIÓN</label>
+                        <input type="time" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.time as string) || "12:00"} onChange={(e) => updateNodeData(selectedNode.id, { time: e.target.value })} />
+                      </div>
+
+                      {/* WEEKLY DAYS */}
+                      {selectedNode.data.scheduleType === 'WEEKLY' && (
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>DÍAS DE LA SEMANA</label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {WEEKDAYS.map(day => (
+                              <button key={day} onClick={() => {
+                                const currentDays = (selectedNode.data.days as string[]) || [];
+                                const newDays = currentDays.includes(day) ? currentDays.filter(d => d !== day) : [...currentDays, day];
+                                updateNodeData(selectedNode.id, { days: newDays });
+                              }} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid', borderColor: ((selectedNode.data.days as string[]) || []).includes(day) ? '#3b82f6' : 'rgba(255,255,255,0.1)', backgroundColor: ((selectedNode.data.days as string[]) || []).includes(day) ? 'rgba(59, 130, 246, 0.2)' : 'transparent', color: 'white', fontSize: '10px', cursor: 'pointer' }}>{day}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MONTHLY / ANNUAL DAY */}
+                      {['MONTHLY', 'ANNUALLY'].includes(selectedNode.data.scheduleType as string) && (
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>DÍA DEL MES</label>
+                          <input type="number" min="1" max="31" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.dayOfMonth as number) || 1} onChange={(e) => updateNodeData(selectedNode.id, { dayOfMonth: parseInt(e.target.value) })} />
+                        </div>
+                      )}
+
+                      {/* ANNUAL MONTH */}
+                      {selectedNode.data.scheduleType === 'ANNUALLY' && (
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>MES</label>
+                          <select style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.month as number) || 1} onChange={(e) => updateNodeData(selectedNode.id, { month: parseInt(e.target.value) })}>
+                            {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m, i) => (
+                              <option key={m} value={i + 1}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* ONCE DATE */}
+                      {selectedNode.data.scheduleType === 'ONCE' && (
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', display: 'block', marginBottom: '8px' }}>FECHA ESPECÍFICA</label>
+                          <input type="date" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.onceDate as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { onceDate: e.target.value })} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {selectedNode.type === 'gemini' && (
