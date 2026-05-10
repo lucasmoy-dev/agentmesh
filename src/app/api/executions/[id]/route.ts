@@ -24,7 +24,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       status: execution.status,
-      steps: execution.steps.map(s => ({
+      steps: execution.steps.map((s: any) => ({
         nodeId: s.nodeId,
         status: s.status,
         output: s.output,
