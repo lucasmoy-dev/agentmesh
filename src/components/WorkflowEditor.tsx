@@ -33,7 +33,6 @@ const nodeTypes = {
   ghost: GhostNode, 
   storage: StorageNode, 
   workflow: WorkflowNode,
-  workflow: WorkflowNode,
   email: EmailNode,
   join: JoinNode
 };
@@ -61,7 +60,9 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
   const [ghostMenu, setGhostMenu] = useState<{ x: number, y: number, parentId: string } | null>(null);
   
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
+  const selectedEdge = edges.find(e => e.id === selectedEdgeId) || null;
 
   const getRealNodes = (nds: Node[]) => nds.filter(n => n.type !== 'ghost');
   const getRealEdges = (eds: Edge[]) => eds.filter(e => !e.id.startsWith('ghost-edge'));
@@ -253,14 +254,14 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <button onClick={() => router.push('/')} style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '8px', color: 'white', cursor: 'pointer' }}><ChevronLeft size={20} /></button>
           <input type="text" value={workflowName} onChange={(e) => setWorkflowName(e.target.value)} style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', fontWeight: 'bold', color: 'white', outline: 'none', width: '300px' }} />
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button 
             onClick={() => addNodeManual('gemini')}
-            style={{ marginLeft: '12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', color: '#6366f1', padding: '8px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
           >
             <Edit3 size={14} /> Agregar Nodo
           </button>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
           <button style={{ backgroundColor: isPlaying ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: isPlaying ? '#10b981' : 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={playWorkflow} disabled={isPlaying || isSaving}><Play size={14} fill="currentColor" /> {isPlaying ? 'En progreso...' : 'Probar'}</button>
           <button style={{ backgroundColor: '#6366f1', border: 'none', color: 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={saveWorkflow} disabled={isSaving}><Save size={14} /> {isSaving ? 'Guardando...' : 'Guardar'}</button>
         </div>
@@ -268,7 +269,36 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
       <div style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={(p) => setNodes(refreshGhostNodes(nodes, addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges))).nodes)} onNodeClick={(e, n) => n.type !== 'ghost' && setSelectedNodeId(n.id)} onPaneClick={() => { setSelectedNodeId(null); setGhostMenu(null); }} nodeTypes={nodeTypes} colorMode="dark" fitView>
+          <ReactFlow 
+            nodes={nodes} 
+            edges={edges} 
+            onNodesChange={onNodesChange} 
+            onEdgesChange={onEdgesChange} 
+            onConnect={(p) => {
+              const newEdges = addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges));
+              setEdges(newEdges);
+              const { nodes: finalNodes } = refreshGhostNodes(nodes, newEdges);
+              setNodes(finalNodes);
+            }} 
+            onNodeClick={(e, n) => {
+              if (n.type !== 'ghost') {
+                setSelectedNodeId(n.id);
+                setSelectedEdgeId(null);
+              }
+            }}
+            onEdgeClick={(e, edge) => {
+              setSelectedEdgeId(edge.id);
+              setSelectedNodeId(null);
+            }}
+            onPaneClick={() => { 
+              setSelectedNodeId(null); 
+              setSelectedEdgeId(null);
+              setGhostMenu(null); 
+            }} 
+            nodeTypes={nodeTypes} 
+            colorMode="dark" 
+            fitView
+          >
             <Background variant={BackgroundVariant.Dots} gap={25} size={1} color="rgba(255,255,255,0.05)" />
             {ghostMenu && (
               <Panel position="top-left" style={{ position: 'absolute', left: ghostMenu.x, top: ghostMenu.y, zIndex: 1000 }}>
@@ -447,6 +477,39 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
             <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button onClick={saveWorkflow} style={{ width: '100%', padding: '12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}>Guardar</button>
               <button onClick={deleteSelectedNode} style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold' }}>Eliminar</button>
+            </div>
+          </div>
+        )}
+
+        {selectedEdge && (
+          <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Conexión</h3>
+              <button onClick={() => setSelectedEdgeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3 }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px', flex: 1 }}>
+              <div style={{ backgroundColor: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                <GitBranch size={40} style={{ color: '#6366f1', marginBottom: '16px', opacity: 0.5 }} />
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>Esta conexión une dos nodos del flujo. Puedes eliminarla para desconectar los procesos.</p>
+              </div>
+            </div>
+            
+            <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <button 
+                onClick={() => {
+                  setEdges((eds) => {
+                    const newEdges = eds.filter(e => e.id !== selectedEdgeId);
+                    const { nodes: finalNodes } = refreshGhostNodes(nodes, newEdges);
+                    setNodes(finalNodes);
+                    return newEdges;
+                  });
+                  setSelectedEdgeId(null);
+                }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Eliminar Conexión
+              </button>
             </div>
           </div>
         )}
