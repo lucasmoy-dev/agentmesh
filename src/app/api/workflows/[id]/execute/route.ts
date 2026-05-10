@@ -48,6 +48,7 @@ export async function POST(
           } else {
             if (currentNode.type.toLowerCase().includes("gemini")) {
               const prompt = config.prompt.replace("{{output}}", lastOutput);
+              console.log(` [GEMINI] Llamando a gemini-3-flash-preview (v1beta)...`);
               const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-goog-api-key": settings.GEMINI_API_KEY },
