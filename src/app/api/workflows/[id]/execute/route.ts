@@ -59,7 +59,7 @@ export async function POST(
             return step?.output || "";
           });
           // El lastOutput para el Join será la concatenación
-          const joinedOutput = predecessorOutputs.join("\n\n---\n\n");
+          const joinedOutput = predecessorOutputs.join("\n\n");
           // Ejecutamos la lógica del Join (que es simplemente devolver el joinedOutput)
           await db.executionStep.create({ data: { executionId: execution.id, nodeId: currentNode.id, status: "RUNNING" } });
           const step = await db.executionStep.findFirst({ where: { executionId: execution.id, nodeId: currentNode.id }, orderBy: { createdAt: 'desc' } });

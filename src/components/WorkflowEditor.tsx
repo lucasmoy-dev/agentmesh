@@ -284,11 +284,13 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
               if (n.type !== 'ghost') {
                 setSelectedNodeId(n.id);
                 setSelectedEdgeId(null);
+                setGhostMenu(null);
               }
             }}
             onEdgeClick={(e, edge) => {
               setSelectedEdgeId(edge.id);
               setSelectedNodeId(null);
+              setGhostMenu(null);
             }}
             onPaneClick={() => { 
               setSelectedNodeId(null); 
