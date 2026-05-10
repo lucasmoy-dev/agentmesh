@@ -145,6 +145,31 @@ export async function POST(
             }
           } else if (currentNode.type.toLowerCase().includes("trigger")) {
             output = "Trigger activado con éxito";
+          } else if (currentNode.type.toLowerCase().includes("debug")) {
+            // Lógica de Alerta Debug (Pausa el motor hasta que el usuario acepte)
+            await db.executionStep.update({
+              where: { id: step.id },
+              data: { status: "WAITING", output: lastOutput }
+            });
+
+            // Esperar a que el status sea COMPLETED (confirmado por el usuario en el frontend)
+            let confirmed = false;
+            while (!confirmed) {
+              await new Promise(r => setTimeout(r, 1000));
+              const currentStep = await db.executionStep.findUnique({ where: { id: step.id } });
+              if (currentStep?.status === "COMPLETED") {
+                confirmed = true;
+                output = lastOutput; // El debug no modifica el output
+              } else if (currentStep?.status === "FAILED") {
+                throw new Error("Ejecución cancelada en el nodo Debug");
+              }
+            }
+            // Ya se marcó como COMPLETED por el endpoint de confirmación, así que saltamos el update final
+            const outgoingEdges = workflow.edges.filter((e: any) => e.sourceNodeId === currentNode.id);
+            outgoingEdges.forEach((edge: any) => {
+              queue.push({ nodeId: edge.targetNodeId, lastOutput: output });
+            });
+            continue; 
           }
 
           await db.executionStep.update({

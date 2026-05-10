@@ -18,7 +18,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge } from 'lucide-react';
+import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge, Bug } from 'lucide-react';
 import { GeminiNode } from './nodes/GeminiNode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { GhostNode } from './nodes/GhostNode';
@@ -26,6 +26,7 @@ import { StorageNode } from './nodes/StorageNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { EmailNode } from './nodes/EmailNode';
 import { JoinNode } from './nodes/JoinNode';
+import { DebugNode } from './nodes/DebugNode';
 
 const nodeTypes = { 
   gemini: GeminiNode, 
@@ -34,7 +35,8 @@ const nodeTypes = {
   storage: StorageNode, 
   workflow: WorkflowNode,
   email: EmailNode,
-  join: JoinNode
+  join: JoinNode,
+  debug: DebugNode
 };
 
 const defaultEdgeOptions = {
@@ -61,6 +63,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
   
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [debugAlert, setDebugAlert] = useState<{ executionId: string, nodeId: string, content: string } | null>(null);
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
   const selectedEdge = edges.find(e => e.id === selectedEdgeId) || null;
 
@@ -217,7 +220,13 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
         setNodes(nds => nds.map(n => {
           const step = data.steps.find((s: any) => s.nodeId === n.id);
           if (!step) return n;
-          return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
+          
+          // Si el nodo está esperando confirmación (Debug Alert), abrimos el modal
+          if (step.status === 'WAITING' && !debugAlert) {
+            setDebugAlert({ executionId, nodeId: n.id, content: step.output || '' });
+          }
+
+          return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING' || step.status === 'WAITING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
         }));
 
         setEdges(eds => eds.map(e => {
@@ -311,12 +320,52 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                    <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
                   <button onClick={() => addNodeFromGhost('storage')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Database size={14} /> Guardar DB</button>
                   <button onClick={() => addNodeFromGhost('join')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Merge size={14} /> Concatenar</button>
+                  <button onClick={() => addNodeFromGhost('debug')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '10px', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Bug size={14} /> Alert Debug</button>
                 </div>
               </Panel>
             )}
             <Controls />
           </ReactFlow>
         </div>
+
+        {/* MODAL DEBUG */}
+        {debugAlert && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zHeindex: 10000, padding: '20px' }}>
+            <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#18181b', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '16px', color: '#f59e0b' }}>
+                  <Bug size={32} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>Debug Alert</h2>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>El proceso se ha detenido para que revises el contenido.</p>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '20px', maxHeight: '300px', overflowY: 'auto', marginBottom: '32px' }}>
+                <pre style={{ fontSize: '13px', color: '#f59e0b', fontFamily: 'monospace', whiteSpace: 'pre-wrap', margin: 0 }}>
+                  {debugAlert.content || 'Sin contenido...'}
+                </pre>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  onClick={async () => {
+                    await fetch(`/api/executions/${debugAlert.executionId}/confirm`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ nodeId: debugAlert.nodeId })
+                    });
+                    setDebugAlert(null);
+                  }}
+                  style={{ flex: 1, padding: '16px', backgroundColor: '#f59e0b', border: 'none', borderRadius: '16px', color: 'black', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
+                >
+                  Confirmar y Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {selectedNode && (
           <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
