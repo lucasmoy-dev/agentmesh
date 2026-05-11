@@ -553,35 +553,35 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                         <option value="default">Default (Ajustes)</option>
                         {(selectedNode.data.aiProvider === 'gemini' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'gemini')) && (
                           <>
-                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                            <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash-Lite</option>
-                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (x1)</option>
+                            <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash-Lite (x0.5)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (x1)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (x10)</option>
                           </>
                         )}
                         {(selectedNode.data.aiProvider === 'groq' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'groq')) && (
                           <>
-                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-                            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (x10)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (x1)</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (x5)</option>
                           </>
                         )}
                         {(selectedNode.data.aiProvider === 'deepseek' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'deepseek')) && (
                           <>
-                            <option value="deepseek-chat">DeepSeek Chat</option>
-                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                            <option value="deepseek-chat">DeepSeek Chat (x1)</option>
+                            <option value="deepseek-reasoner">DeepSeek Reasoner (x5)</option>
                           </>
                         )}
                         {(selectedNode.data.aiProvider === 'opencode' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'opencode')) && (
                           <>
                             <optgroup label="Coding">
-                              <option value="big-pickle">Big Pickle</option>
-                              <option value="stealth">Stealth</option>
+                              <option value="big-pickle">Big Pickle (x1)</option>
+                              <option value="stealth">Stealth (x1)</option>
                             </optgroup>
                             <optgroup label="Claude">
-                              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
-                              <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                              <option value="claude-opus-4-7">Claude Opus 4.7</option>
+                              <option value="claude-haiku-4-5">Claude Haiku 4.5 (x2)</option>
+                              <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (x15)</option>
+                              <option value="claude-opus-4-7">Claude Opus 4.7 (x75)</option>
                             </optgroup>
                           </>
                         )}
