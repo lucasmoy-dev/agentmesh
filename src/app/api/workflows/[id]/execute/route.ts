@@ -151,7 +151,7 @@ export async function POST(
               output = json.choices[0].message.content;
             } else if (aiModel === 'opencode') {
               if (!settings.OPENCODE_API_KEY) throw new Error("OPENCODE_API_KEY no configurada en Ajustes.");
-              const model = config.opencodeModel || "opencode/big-pickle";
+              const model = config.opencodeModel || "big-pickle";
               console.log(` [OPENCODE] Llamando a ${model}...`);
               const res = await fetch("https://opencode.ai/zen/v1/chat/completions", {
                 method: "POST",
