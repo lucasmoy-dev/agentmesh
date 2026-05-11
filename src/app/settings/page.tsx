@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Key, CheckCircle2, AlertCircle, Loader2, Mail, Server, Shield, Send, ExternalLink, X } from 'lucide-react';
+import { Settings, Save, Key, CheckCircle2, AlertCircle, Loader2, Mail, Server, Shield, Send, ExternalLink, X, Brain } from 'lucide-react';
 
 export default function SettingsPage() {
   const [config, setConfig] = useState({
     GEMINI_API_KEY: "",
+    GROQ_API_KEY: "",
+    AI_DEFAULT_MODEL: "gemini",
     SMTP_HOST: "",
     SMTP_PORT: "587",
     SMTP_USER: "",
@@ -109,21 +111,42 @@ export default function SettingsPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Gemini Settings */}
+        {/* AI Settings */}
         <div className="glass-card" style={{ padding: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-            <Key size={20} className="text-purple-500" />
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Gemini AI</h3>
+            <Brain size={20} className="text-purple-500" />
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>AI</h3>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>API KEY</label>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>MODELO POR DEFECTO</label>
+              <select
+                value={config.AI_DEFAULT_MODEL}
+                onChange={(e) => updateConfig('AI_DEFAULT_MODEL', e.target.value)}
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white' }}
+              >
+                <option value="gemini">Gemini (Google)</option>
+                <option value="groq">Groq</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>GEMINI API KEY</label>
               <input 
                 type="password" 
                 value={config.GEMINI_API_KEY} 
                 onChange={(e) => updateConfig('GEMINI_API_KEY', e.target.value)}
                 placeholder="AIzaSy..."
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>GROQ API KEY</label>
+              <input 
+                type="password" 
+                value={config.GROQ_API_KEY} 
+                onChange={(e) => updateConfig('GROQ_API_KEY', e.target.value)}
+                placeholder="gsk_..."
                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
               />
             </div>

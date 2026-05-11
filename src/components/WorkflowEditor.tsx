@@ -20,7 +20,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge, Bug, FileText } from 'lucide-react';
-import { GeminiNode } from './nodes/GeminiNode';
+import { AINode } from './nodes/AINode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { GhostNode } from './nodes/GhostNode';
 import { StorageNode } from './nodes/StorageNode';
@@ -30,7 +30,8 @@ import { ConverterNode } from './nodes/ConverterNode';
 import { DebugNode } from './nodes/DebugNode';
 
 const nodeTypes = { 
-  gemini: GeminiNode, 
+  gemini: AINode,
+  ai: AINode,
   trigger: TriggerNode, 
   ghost: GhostNode, 
   storage: StorageNode, 
@@ -56,6 +57,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [availableWorkflows, setAvailableWorkflows] = useState<any[]>([]);
+  const [defaultAiModel, setDefaultAiModel] = useState<string>('gemini');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -96,8 +98,11 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     setMounted(true);
     const loadData = async () => {
       try {
-        const [wfRes, listRes] = await Promise.all([fetch(`/api/workflows/${workflowId}`), fetch(`/api/workflows`)]);
+        const [wfRes, listRes, settingsRes] = await Promise.all([fetch(`/api/workflows/${workflowId}`), fetch(`/api/workflows`), fetch(`/api/settings`)]);
         const data = await wfRes.json();
+        const listData = await listRes.json();
+        const settingsData = await settingsRes.json().catch(() => ({}));
+        if (settingsData.AI_DEFAULT_MODEL) setDefaultAiModel(settingsData.AI_DEFAULT_MODEL);
         const listData = await listRes.json();
         setWorkflowName(data.name);
         setAvailableWorkflows(listData.filter((w: any) => w.id !== workflowId));
@@ -144,7 +149,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
   const addNodeManual = (type: string) => {
     const id = `${type}-${Math.random().toString(36).substr(2, 9)}`;
-    const newNode: Node = { id, type, position: { x: 250, y: 150 }, data: { prompt: "", scheduleType: "MANUAL", onEdit: () => setSelectedNodeId(id) } };
+    const newNode: Node = { id, type, position: { x: 250, y: 150 }, data: { prompt: "", scheduleType: "MANUAL", aiModel: defaultAiModel, onEdit: () => setSelectedNodeId(id) } };
     setNodes((nds) => {
       const updated = [...getRealNodes(nds), newNode];
       const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(updated, edges);
@@ -159,7 +164,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     const id = `${type}-${Math.random().toString(36).substr(2, 9)}`;
     setNodes((nds) => {
       const realNodes = getRealNodes(nds);
-      const newNode: Node = { id, type, position: { x: x - 60, y: y - 60 }, data: { prompt: "", scheduleType: "MANUAL", onEdit: () => setSelectedNodeId(id) } };
+      const newNode: Node = { id, type, position: { x: x - 60, y: y - 60 }, data: { prompt: "", scheduleType: "MANUAL", aiModel: defaultAiModel, onEdit: () => setSelectedNodeId(id) } };
       const updatedNodes = [...realNodes, newNode];
       setEdges((eds) => {
         const realEdges = getRealEdges(eds);
@@ -335,7 +340,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
               <Panel position="top-left" style={{ position: 'absolute', left: ghostMenu.x, top: ghostMenu.y, zIndex: 1000 }}>
                 <div style={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {!ghostMenu.parentId && <button onClick={() => addNodeFromGhost('trigger')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Clock size={14} /> Trigger</button>}
-                  <button onClick={() => addNodeFromGhost('gemini')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '10px', color: '#a855f7', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Brain size={14} /> Gemini AI</button>
+                  <button onClick={() => addNodeFromGhost('gemini')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '10px', color: '#a855f7', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Brain size={14} /> AI</button>
                   <button onClick={() => addNodeFromGhost('email')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '10px', color: '#ec4899', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Mail size={14} /> Enviar Email</button>
                    <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
                   <button onClick={() => addNodeFromGhost('storage')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Database size={14} /> Guardar DB</button>
@@ -409,7 +414,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
             </div>
             
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              {['gemini', 'workflow', 'email', 'storage'].includes(selectedNode.type || '') && (
+              {['gemini', 'ai', 'workflow', 'email', 'storage'].includes(selectedNode.type || '') && (
                 <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.15)', borderRadius: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: selectedNode.data.mockEnabled && selectedNode.type !== 'storage' ? '12px' : '0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -522,10 +527,21 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   )}
                 </div>
               )}
-              {selectedNode.type === 'gemini' && (
+              {(selectedNode.type === 'gemini' || selectedNode.type === 'ai') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO DE IA</label>
+                    <select
+                      style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
+                      value={(selectedNode.data.aiModel as string) || 'gemini'}
+                      onChange={(e) => updateNodeData(selectedNode.id, { aiModel: e.target.value })}
+                    >
+                      <option value="gemini">Gemini (Google)</option>
+                      <option value="groq">Groq</option>
+                    </select>
+                  </div>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
-                  <textarea style={{ width: '100%', height: '250px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
+                  <textarea style={{ width: '100%', height: '220px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>
               )}
               {selectedNode.type === 'workflow' && (

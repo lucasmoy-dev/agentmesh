@@ -107,14 +107,29 @@ export async function POST(
         try {
           let output = "";
 
-          if (currentNode.type.toLowerCase().includes("gemini")) {
+          if (currentNode.type.toLowerCase().includes("gemini") || currentNode.type.toLowerCase() === "ai") {
             const prompt = config.prompt.split("{{output}}").join(lastOutput);
+            const aiModel = config.aiModel || 'gemini';
             if (config?.mockEnabled) {
-              output = config.mockResponse || "Respuesta Gemini mockeada";
+              output = config.mockResponse || "Respuesta AI mockeada";
+            } else if (aiModel === 'groq') {
+              if (!settings.GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada en Ajustes.");
+              console.log(` [GROQ] Llamando a llama-3.3-70b-versatile...`);
+              const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.GROQ_API_KEY}` },
+                body: JSON.stringify({
+                  model: "llama-3.3-70b-versatile",
+                  messages: [{ role: "user", content: prompt }]
+                })
+              });
+              const json = await res.json();
+              if (json.error) throw new Error(`Groq API Error: ${JSON.stringify(json.error)}`);
+              output = json.choices[0].message.content;
             } else {
               if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");
-              console.log(` [GEMINI] Llamando a gemini-3-flash-preview (v1beta)...`);
-              const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent", {
+              console.log(` [GEMINI] Llamando a gemini-2.0-flash (v1beta)...`);
+              const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-goog-api-key": settings.GEMINI_API_KEY },
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
