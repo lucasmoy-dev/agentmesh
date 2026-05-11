@@ -149,10 +149,23 @@ export default function SettingsPage() {
                 >
                   {config.AI_DEFAULT_PROVIDER === 'gemini' && (
                     <>
-                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (x2)</option>
-                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (x0.5)</option>
-                      <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (x1)</option>
-                      <option value="gemini-2.5-flash">Gemini 2.5 Flash (x1)</option>
+                      <optgroup label="Gemini Frontier (3.1 / 3.0)">
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (x2)</option>
+                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (x0.5)</option>
+                        <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (x2)</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (x1)</option>
+                      </optgroup>
+                      <optgroup label="Gemini Stable (2.5 / 2.0)">
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (x2)</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (x1)</option>
+                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (x0.5)</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (x0.8)</option>
+                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (x0.5)</option>
+                      </optgroup>
+                      <optgroup label="Specialized / Open">
+                        <option value="deep-research-max-preview-04-2026">Deep Research Max (x20)</option>
+                        <option value="gemma-4-31b-it">Gemma 4 31B IT (x0.2)</option>
+                      </optgroup>
                     </>
                   )}
                   {config.AI_DEFAULT_PROVIDER === 'groq' && (
