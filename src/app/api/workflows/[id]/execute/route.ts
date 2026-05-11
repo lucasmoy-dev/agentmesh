@@ -109,7 +109,13 @@ export async function POST(
 
           if (currentNode.type.toLowerCase().includes("gemini") || currentNode.type.toLowerCase() === "ai") {
             const prompt = config.prompt.split("{{output}}").join(lastOutput);
-            const aiModel = config.aiModel || 'gemini';
+            let aiModel = config.aiModel || 'default';
+            
+            // Lógica de Default: Si es 'default', usamos el del sistema
+            if (aiModel === 'default') {
+              aiModel = settings.AI_DEFAULT_MODEL || 'gemini';
+            }
+
             if (config?.mockEnabled) {
               output = config.mockResponse || "Respuesta AI mockeada";
             } else if (aiModel === 'groq') {
@@ -141,6 +147,24 @@ export async function POST(
               if (json.error) {
                 const errorMsg = typeof json.error === 'string' ? json.error : (json.error.message || JSON.stringify(json.error));
                 throw new Error(`DeepSeek Error: ${errorMsg}`);
+              }
+              output = json.choices[0].message.content;
+            } else if (aiModel === 'opencode') {
+              if (!settings.OPENCODE_API_KEY) throw new Error("OPENCODE_API_KEY no configurada en Ajustes.");
+              const model = config.opencodeModel || "opencode/big-pickle";
+              console.log(` [OPENCODE] Llamando a ${model}...`);
+              const res = await fetch("https://opencode.ai/zen/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.OPENCODE_API_KEY}` },
+                body: JSON.stringify({
+                  model: model,
+                  messages: [{ role: "user", content: prompt }]
+                })
+              });
+              const json = await res.json();
+              if (json.error) {
+                const errorMsg = typeof json.error === 'string' ? json.error : (json.error.message || JSON.stringify(json.error));
+                throw new Error(`OpenCode Error: ${errorMsg}`);
               }
               output = json.choices[0].message.content;
             } else {

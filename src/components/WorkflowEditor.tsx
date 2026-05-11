@@ -532,14 +532,35 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                     <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO DE IA</label>
                     <select
                       style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
-                      value={(selectedNode.data.aiModel as string) || 'gemini'}
+                      value={(selectedNode.data.aiModel as string) || 'default'}
                       onChange={(e) => updateNodeData(selectedNode.id, { aiModel: e.target.value })}
                     >
+                      <option value="default">Default (Usar ajustes)</option>
                       <option value="gemini">Gemini (Google)</option>
                       <option value="groq">Groq</option>
                       <option value="deepseek">DeepSeek</option>
+                      <option value="opencode">OpenCode Zen</option>
                     </select>
                   </div>
+                  {selectedNode.data.aiModel === 'opencode' && (
+                    <div>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO OPENCODE</label>
+                      <select
+                        style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
+                        value={(selectedNode.data.opencodeModel as string) || 'opencode/big-pickle'}
+                        onChange={(e) => updateNodeData(selectedNode.id, { opencodeModel: e.target.value })}
+                      >
+                        <option value="opencode/big-pickle">Big Pickle (Stealth)</option>
+                        <option value="opencode/stealth">Stealth</option>
+                        <option value="opencode/minimax-m2.5">MiniMax M2.5</option>
+                        <option value="opencode/minimax-m2.5-free">MiniMax M2.5 Free</option>
+                        <option value="opencode/minimax-m2.7">MiniMax M2.7</option>
+                        <option value="opencode/claude-haiku-4.5">Claude Haiku 4.5</option>
+                        <option value="opencode/claude-opus-4.7">Claude Opus 4.7</option>
+                        <option value="opencode/claude-sonnet-4">Claude Sonnet 4</option>
+                      </select>
+                    </div>
+                  )}
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
                   <textarea style={{ width: '100%', height: '220px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>

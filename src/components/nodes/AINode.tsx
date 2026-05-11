@@ -8,9 +8,21 @@ export const AINode = memo(({ data, isConnectable }: NodeProps) => {
   const isExecuting = data.isExecuting as boolean;
   const isFinished = data.isFinished as boolean;
   const isError = data.isError as boolean;
-  const model = (data.aiModel as string) || 'gemini';
+  const model = (data.aiModel as string) || 'default';
+  const opencodeModel = (data.opencodeModel as string) || '';
 
-  const modelLabel = model === 'groq' ? 'Groq' : 'Gemini';
+  const getModelLabel = () => {
+    if (model === 'default') return 'Default';
+    if (model === 'gemini') return 'Gemini';
+    if (model === 'groq') return 'Groq';
+    if (model === 'deepseek') return 'DeepSeek';
+    if (model === 'opencode') {
+      return opencodeModel.split('/').pop() || 'OpenCode';
+    }
+    return model;
+  };
+
+  const modelLabel = getModelLabel();
 
   return (
     <div style={{
