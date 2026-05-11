@@ -537,6 +537,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                     >
                       <option value="gemini">Gemini (Google)</option>
                       <option value="groq">Groq</option>
+                      <option value="deepseek">DeepSeek</option>
                     </select>
                   </div>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>

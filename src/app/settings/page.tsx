@@ -7,6 +7,7 @@ export default function SettingsPage() {
   const [config, setConfig] = useState({
     GEMINI_API_KEY: "",
     GROQ_API_KEY: "",
+    DEEPSEEK_API_KEY: "",
     AI_DEFAULT_MODEL: "gemini",
     SMTP_HOST: "",
     SMTP_PORT: "587",
@@ -128,6 +129,7 @@ export default function SettingsPage() {
               >
                 <option value="gemini">Gemini (Google)</option>
                 <option value="groq">Groq</option>
+                <option value="deepseek">DeepSeek</option>
               </select>
             </div>
             <div>
@@ -147,6 +149,16 @@ export default function SettingsPage() {
                 value={config.GROQ_API_KEY} 
                 onChange={(e) => updateConfig('GROQ_API_KEY', e.target.value)}
                 placeholder="gsk_..."
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>DEEPSEEK API KEY</label>
+              <input 
+                type="password" 
+                value={config.DEEPSEEK_API_KEY} 
+                onChange={(e) => updateConfig('DEEPSEEK_API_KEY', e.target.value)}
+                placeholder="sk-..."
                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
               />
             </div>

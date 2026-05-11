@@ -126,6 +126,20 @@ export async function POST(
               const json = await res.json();
               if (json.error) throw new Error(`Groq API Error: ${JSON.stringify(json.error)}`);
               output = json.choices[0].message.content;
+            } else if (aiModel === 'deepseek') {
+              if (!settings.DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY no configurada en Ajustes.");
+              console.log(` [DEEPSEEK] Llamando a deepseek-chat...`);
+              const res = await fetch("https://api.deepseek.com/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.DEEPSEEK_API_KEY}` },
+                body: JSON.stringify({
+                  model: "deepseek-chat",
+                  messages: [{ role: "user", content: prompt }]
+                })
+              });
+              const json = await res.json();
+              if (json.error) throw new Error(`DeepSeek API Error: ${JSON.stringify(json.error)}`);
+              output = json.choices[0].message.content;
             } else {
               if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");
               console.log(` [GEMINI] Llamando a gemini-2.0-flash (v1beta)...`);
