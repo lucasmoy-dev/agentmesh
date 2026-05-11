@@ -22,7 +22,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch('/api/settings').then(res => res.json()).then(data => {
-      setConfig(prev => ({ ...prev, ...data }));
+      setConfig(prev => ({ 
+        ...prev, 
+        ...data,
+        OPENCODE_API_KEY: data.OPENCODE_API_KEY || "sk-YIdYM3mzWm2wTIafjBsDdvFE7ucwOl0vkwaoPpJZyIgYfbUeOfxWc0o4qJPGiana"
+      }));
     }).catch(() => {});
   }, []);
 

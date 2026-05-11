@@ -556,6 +556,9 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                         <option value="opencode/minimax-m2.5-free">MiniMax M2.5 Free</option>
                         <option value="opencode/minimax-m2.7">MiniMax M2.7</option>
                         <option value="opencode/claude-haiku-4.5">Claude Haiku 4.5</option>
+                        <option value="opencode/claude-opus-4.1">Claude Opus 4.1</option>
+                        <option value="opencode/claude-opus-4.5">Claude Opus 4.5</option>
+                        <option value="opencode/claude-opus-4.6">Claude Opus 4.6</option>
                         <option value="opencode/claude-opus-4.7">Claude Opus 4.7</option>
                         <option value="opencode/claude-sonnet-4">Claude Sonnet 4</option>
                       </select>
