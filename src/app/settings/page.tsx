@@ -149,12 +149,10 @@ export default function SettingsPage() {
                 >
                   {config.AI_DEFAULT_PROVIDER === 'gemini' && (
                     <>
-                      <option value="gemini-3-flash">Gemini 3 Flash (x1)</option>
-                      <option value="gemini-2.5-pro">Gemini 2.5 Pro (x2)</option>
+                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (x2)</option>
+                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (x0.5)</option>
+                      <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (x1)</option>
                       <option value="gemini-2.5-flash">Gemini 2.5 Flash (x1)</option>
-                      <option value="gemini-2.0-flash">Gemini 2 Flash (x0.8)</option>
-                      <option value="gemini-2.0-flash-lite">Gemini 2 Flash Lite (x0.5)</option>
-                      <option value="gemma-3-1b">Gemma 3 1B (x0.2)</option>
                     </>
                   )}
                   {config.AI_DEFAULT_PROVIDER === 'groq' && (
