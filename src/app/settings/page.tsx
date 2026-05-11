@@ -192,7 +192,17 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>GEMINI API KEY</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>GEMINI API KEY</label>
+                <a 
+                  href="https://aistudio.google.com/app/rate-limit?timeRange=this-month" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ fontSize: '10px', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
+                >
+                  <ExternalLink size={10} /> Ver Uso y Cuota
+                </a>
+              </div>
               <input 
                 type="password" 
                 value={config.GEMINI_API_KEY} 
