@@ -8,18 +8,15 @@ export const AINode = memo(({ data, isConnectable }: NodeProps) => {
   const isExecuting = data.isExecuting as boolean;
   const isFinished = data.isFinished as boolean;
   const isError = data.isError as boolean;
+  const provider = (data.aiProvider as string) || 'default';
   const model = (data.aiModel as string) || 'default';
-  const opencodeModel = (data.opencodeModel as string) || '';
 
   const getModelLabel = () => {
-    if (model === 'default') return 'Default';
-    if (model === 'gemini') return 'Gemini';
-    if (model === 'groq') return 'Groq';
-    if (model === 'deepseek') return 'DeepSeek';
-    if (model === 'opencode') {
-      return opencodeModel.split('/').pop() || 'OpenCode';
-    }
-    return model;
+    if (provider === 'default' && model === 'default') return 'Default';
+    if (model === 'default') return provider.charAt(0).toUpperCase() + provider.slice(1);
+    
+    // Simplificar nombres largos
+    return model.replace('gemini-', '').replace('llama-', '').replace('deepseek-', '').replace('opencode/', '');
   };
 
   const modelLabel = getModelLabel();

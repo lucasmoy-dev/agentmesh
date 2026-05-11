@@ -528,54 +528,66 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
               )}
               {(selectedNode.type === 'gemini' || selectedNode.type === 'ai') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO DE IA</label>
-                    <select
-                      style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
-                      value={(selectedNode.data.aiModel as string) || 'default'}
-                      onChange={(e) => updateNodeData(selectedNode.id, { aiModel: e.target.value })}
-                    >
-                      <option value="default">Default (Usar ajustes)</option>
-                      <option value="gemini">Gemini (Google)</option>
-                      <option value="groq">Groq</option>
-                      <option value="deepseek">DeepSeek</option>
-                      <option value="opencode">OpenCode Zen</option>
-                    </select>
-                  </div>
-                  {selectedNode.data.aiModel === 'opencode' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div>
-                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO OPENCODE</label>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>PROVEEDOR</label>
                       <select
                         style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
-                        value={(selectedNode.data.opencodeModel as string) || 'big-pickle'}
-                        onChange={(e) => updateNodeData(selectedNode.id, { opencodeModel: e.target.value })}
+                        value={(selectedNode.data.aiProvider as string) || 'default'}
+                        onChange={(e) => updateNodeData(selectedNode.id, { aiProvider: e.target.value, aiModel: 'default' })}
                       >
-                        <optgroup label="Coding Models">
-                          <option value="big-pickle">Big Pickle (Stealth)</option>
-                          <option value="gpt-5.3-codex">GPT-5.3 Codex</option>
-                        </optgroup>
-                        <optgroup label="Claude (Anthropic)">
-                          <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
-                          <option value="claude-sonnet-4">Claude Sonnet 4</option>
-                          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                          <option value="claude-opus-4-1">Claude Opus 4.1</option>
-                          <option value="claude-opus-4-5">Claude Opus 4.5</option>
-                          <option value="claude-opus-4-6">Claude Opus 4.6</option>
-                          <option value="claude-opus-4-7">Claude Opus 4.7</option>
-                        </optgroup>
-                        <optgroup label="MiniMax">
-                          <option value="minimax-m2.7">MiniMax M2.7</option>
-                          <option value="minimax-m2.5">MiniMax M2.5</option>
-                          <option value="minimax-m2.5-free">MiniMax M2.5 Free</option>
-                        </optgroup>
-                        <optgroup label="Others">
-                          <option value="gpt-5.5">GPT-5.5</option>
-                          <option value="deepseek-v4-flash-free">DeepSeek V4 Flash Free</option>
-                          <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
-                        </optgroup>
+                        <option value="default">Default (Ajustes)</option>
+                        <option value="gemini">Gemini (Google)</option>
+                        <option value="groq">Groq</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="opencode">OpenCode Zen</option>
                       </select>
                     </div>
-                  )}
+                    <div>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO</label>
+                      <select
+                        style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
+                        value={(selectedNode.data.aiModel as string) || 'default'}
+                        onChange={(e) => updateNodeData(selectedNode.id, { aiModel: e.target.value })}
+                      >
+                        <option value="default">Default (Ajustes)</option>
+                        {(selectedNode.data.aiProvider === 'gemini' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'gemini')) && (
+                          <>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash-Lite</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'groq' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'groq')) && (
+                          <>
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'deepseek' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'deepseek')) && (
+                          <>
+                            <option value="deepseek-chat">DeepSeek Chat</option>
+                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'opencode' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'opencode')) && (
+                          <>
+                            <optgroup label="Coding">
+                              <option value="big-pickle">Big Pickle</option>
+                              <option value="stealth">Stealth</option>
+                            </optgroup>
+                            <optgroup label="Claude">
+                              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+                              <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                              <option value="claude-opus-4-7">Claude Opus 4.7</option>
+                            </optgroup>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
                   <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
                   <textarea style={{ width: '100%', height: '220px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>

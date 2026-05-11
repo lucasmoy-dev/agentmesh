@@ -9,7 +9,8 @@ export default function SettingsPage() {
     GROQ_API_KEY: "",
     DEEPSEEK_API_KEY: "",
     OPENCODE_API_KEY: "",
-    AI_DEFAULT_MODEL: "gemini",
+    AI_DEFAULT_PROVIDER: "gemini",
+    AI_DEFAULT_MODEL: "gemini-2.0-flash",
     SMTP_HOST: "",
     SMTP_PORT: "587",
     SMTP_USER: "",
@@ -125,18 +126,57 @@ export default function SettingsPage() {
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>MODELO POR DEFECTO</label>
-              <select
-                value={config.AI_DEFAULT_MODEL}
-                onChange={(e) => updateConfig('AI_DEFAULT_MODEL', e.target.value)}
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white' }}
-              >
-                <option value="gemini">Gemini (Google)</option>
-                <option value="groq">Groq</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="opencode">OpenCode Zen</option>
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>PROVEEDOR POR DEFECTO</label>
+                <select
+                  value={config.AI_DEFAULT_PROVIDER}
+                  onChange={(e) => updateConfig('AI_DEFAULT_PROVIDER', e.target.value)}
+                  style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white' }}
+                >
+                  <option value="gemini">Gemini (Google)</option>
+                  <option value="groq">Groq</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="opencode">OpenCode Zen</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>MODELO POR DEFECTO</label>
+                <select
+                  value={config.AI_DEFAULT_MODEL}
+                  onChange={(e) => updateConfig('AI_DEFAULT_MODEL', e.target.value)}
+                  style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white' }}
+                >
+                  {config.AI_DEFAULT_PROVIDER === 'gemini' && (
+                    <>
+                      <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                      <option value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash-Lite</option>
+                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    </>
+                  )}
+                  {config.AI_DEFAULT_PROVIDER === 'groq' && (
+                    <>
+                      <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                      <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+                      <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                    </>
+                  )}
+                  {config.AI_DEFAULT_PROVIDER === 'deepseek' && (
+                    <>
+                      <option value="deepseek-chat">DeepSeek Chat</option>
+                      <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                    </>
+                  )}
+                  {config.AI_DEFAULT_PROVIDER === 'opencode' && (
+                    <>
+                      <option value="big-pickle">Big Pickle (Stealth)</option>
+                      <option value="claude-opus-4-7">Claude Opus 4.7</option>
+                      <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    </>
+                  )}
+                </select>
+              </div>
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>GEMINI API KEY</label>

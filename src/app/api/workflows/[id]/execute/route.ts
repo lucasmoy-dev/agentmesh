@@ -109,37 +109,40 @@ export async function POST(
 
           if (currentNode.type.toLowerCase().includes("gemini") || currentNode.type.toLowerCase() === "ai") {
             const prompt = config.prompt.split("{{output}}").join(lastOutput);
-            let aiModel = config.aiModel || 'default';
             
-            // Lógica de Default: Si es 'default', usamos el del sistema
-            if (aiModel === 'default') {
-              aiModel = settings.AI_DEFAULT_MODEL || 'gemini';
-            }
+            // Resolver Proveedor y Modelo
+            let provider = config.aiProvider || 'default';
+            let model = config.aiModel || 'default';
+
+            if (provider === 'default') provider = settings.AI_DEFAULT_PROVIDER || 'gemini';
+            if (model === 'default') model = settings.AI_DEFAULT_MODEL || (provider === 'gemini' ? 'gemini-2.0-flash' : '');
 
             if (config?.mockEnabled) {
               output = config.mockResponse || "Respuesta AI mockeada";
-            } else if (aiModel === 'groq') {
+            } else if (provider === 'groq') {
               if (!settings.GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada en Ajustes.");
-              console.log(` [GROQ] Llamando a llama-3.3-70b-versatile...`);
+              const groqModel = model === 'default' ? 'llama-3.3-70b-versatile' : model;
+              console.log(` [GROQ] Llamando a ${groqModel}...`);
               const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.GROQ_API_KEY}` },
                 body: JSON.stringify({
-                  model: "llama-3.3-70b-versatile",
+                  model: groqModel,
                   messages: [{ role: "user", content: prompt }]
                 })
               });
               const json = await res.json();
               if (json.error) throw new Error(`Groq API Error: ${JSON.stringify(json.error)}`);
               output = json.choices[0].message.content;
-            } else if (aiModel === 'deepseek') {
+            } else if (provider === 'deepseek') {
               if (!settings.DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY no configurada en Ajustes.");
-              console.log(` [DEEPSEEK] Llamando a deepseek-chat...`);
+              const dsModel = model === 'default' ? 'deepseek-chat' : model;
+              console.log(` [DEEPSEEK] Llamando a ${dsModel}...`);
               const res = await fetch("https://api.deepseek.com/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.DEEPSEEK_API_KEY}` },
                 body: JSON.stringify({
-                  model: "deepseek-chat",
+                  model: dsModel,
                   messages: [{ role: "user", content: prompt }]
                 })
               });
@@ -149,15 +152,15 @@ export async function POST(
                 throw new Error(`DeepSeek Error: ${errorMsg}`);
               }
               output = json.choices[0].message.content;
-            } else if (aiModel === 'opencode') {
+            } else if (provider === 'opencode') {
               if (!settings.OPENCODE_API_KEY) throw new Error("OPENCODE_API_KEY no configurada en Ajustes.");
-              const model = config.opencodeModel || "big-pickle";
-              console.log(` [OPENCODE] Llamando a ${model}...`);
+              const ocModel = model === 'default' ? "big-pickle" : model;
+              console.log(` [OPENCODE] Llamando a ${ocModel}...`);
               const res = await fetch("https://opencode.ai/zen/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${settings.OPENCODE_API_KEY}` },
                 body: JSON.stringify({
-                  model: model,
+                  model: ocModel,
                   messages: [{ role: "user", content: prompt }]
                 })
               });
@@ -168,9 +171,11 @@ export async function POST(
               }
               output = json.choices[0].message.content;
             } else {
+              // Por defecto usamos Gemini
               if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");
-              console.log(` [GEMINI] Llamando a gemini-2.0-flash (v1beta)...`);
-              const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+              const geminiModel = model === 'default' ? 'gemini-2.0-flash' : model;
+              console.log(` [GEMINI] Llamando a ${geminiModel}...`);
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-goog-api-key": settings.GEMINI_API_KEY },
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
