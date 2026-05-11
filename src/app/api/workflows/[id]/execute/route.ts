@@ -138,7 +138,10 @@ export async function POST(
                 })
               });
               const json = await res.json();
-              if (json.error) throw new Error(`DeepSeek API Error: ${JSON.stringify(json.error)}`);
+              if (json.error) {
+                const errorMsg = typeof json.error === 'string' ? json.error : (json.error.message || JSON.stringify(json.error));
+                throw new Error(`DeepSeek Error: ${errorMsg}`);
+              }
               output = json.choices[0].message.content;
             } else {
               if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");
