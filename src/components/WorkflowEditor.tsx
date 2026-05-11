@@ -103,7 +103,6 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
         const listData = await listRes.json();
         const settingsData = await settingsRes.json().catch(() => ({}));
         if (settingsData.AI_DEFAULT_MODEL) setDefaultAiModel(settingsData.AI_DEFAULT_MODEL);
-        const listData = await listRes.json();
         setWorkflowName(data.name);
         setAvailableWorkflows(listData.filter((w: any) => w.id !== workflowId));
         let mappedNodes = data.nodes.map((n: any) => ({
