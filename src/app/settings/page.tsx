@@ -16,7 +16,8 @@ export default function SettingsPage() {
     SMTP_USER: "",
     SMTP_PASS: "",
     SMTP_FROM: "",
-    LOCAL_PC_API_KEY: ""
+    LOCAL_PC_API_KEY: "",
+    TIMEZONE: "America/Mexico_City"
   });
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -312,6 +313,63 @@ export default function SettingsPage() {
               <input type="password" value={config.SMTP_PASS} onChange={(e) => updateConfig('SMTP_PASS', e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontSize: '13px' }} />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sistema / Timezone */}
+      <div className="glass-card" style={{ padding: '32px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+          <Server size={20} style={{ color: '#f59e0b' }} />
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Sistema</h3>
+        </div>
+        <div style={{ maxWidth: '400px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>ZONA HORARIA DEL SERVIDOR</label>
+          <select
+            value={config.TIMEZONE}
+            onChange={(e) => updateConfig('TIMEZONE', e.target.value)}
+            style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white' }}
+          >
+            <optgroup label="México">
+              <option value="America/Mexico_City">México (Ciudad de México) — UTC-6/−5</option>
+              <option value="America/Tijuana">México (Tijuana/Baja California) — UTC-8/−7</option>
+              <option value="America/Chihuahua">México (Chihuahua/Sonora) — UTC-7/−6</option>
+            </optgroup>
+            <optgroup label="Centroamérica">
+              <option value="America/Guatemala">Guatemala — UTC-6</option>
+              <option value="America/El_Salvador">El Salvador — UTC-6</option>
+              <option value="America/Tegucigalpa">Honduras — UTC-6</option>
+              <option value="America/Managua">Nicaragua — UTC-6</option>
+              <option value="America/Costa_Rica">Costa Rica — UTC-6</option>
+              <option value="America/Panama">Panamá — UTC-5</option>
+            </optgroup>
+            <optgroup label="Sudamérica">
+              <option value="America/Bogota">Colombia — UTC-5</option>
+              <option value="America/Lima">Perú — UTC-5</option>
+              <option value="America/Guayaquil">Ecuador — UTC-5</option>
+              <option value="America/Caracas">Venezuela — UTC-4</option>
+              <option value="America/Santiago">Chile — UTC-4/−3</option>
+              <option value="America/Argentina/Buenos_Aires">Argentina — UTC-3</option>
+              <option value="America/Sao_Paulo">Brasil (São Paulo) — UTC-3</option>
+              <option value="America/Montevideo">Uruguay — UTC-3</option>
+              <option value="America/La_Paz">Bolivia — UTC-4</option>
+            </optgroup>
+            <optgroup label="España y Europa">
+              <option value="Europe/Madrid">España — UTC+1/+2</option>
+              <option value="Europe/London">Reino Unido — UTC+0/+1</option>
+            </optgroup>
+            <optgroup label="Estados Unidos">
+              <option value="America/New_York">US Eastern — UTC-5/−4</option>
+              <option value="America/Chicago">US Central — UTC-6/−5</option>
+              <option value="America/Denver">US Mountain — UTC-7/−6</option>
+              <option value="America/Los_Angeles">US Pacific — UTC-8/−7</option>
+            </optgroup>
+            <optgroup label="Universal">
+              <option value="UTC">UTC — +0:00</option>
+            </optgroup>
+          </select>
+          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '8px', lineHeight: '1.5' }}>
+            El servidor en Vercel usa UTC. Esta zona horaria se aplica al scheduler de workflows y a las variables <code style={{ color: '#a5b4fc' }}>{'{{fecha}}'}</code> y <code style={{ color: '#a5b4fc' }}>{'{{fecha_hora}}'}</code>.
+          </p>
         </div>
       </div>
 

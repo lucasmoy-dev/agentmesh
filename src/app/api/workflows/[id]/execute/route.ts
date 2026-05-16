@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import nodemailer from "nodemailer";
+import { formatDateInTz, formatDateTimeInTz, DEFAULT_TIMEZONE } from "@/lib/timezone";
 
 async function getSettings() {
   const settings = await db.systemSetting.findMany();
@@ -50,11 +51,12 @@ export async function POST(
         const config = currentNode.config as any;
         const finishedSteps = await db.executionStep.findMany({ where: { executionId: executionId!, status: "COMPLETED" } });
         
+        const tz = settings.TIMEZONE || DEFAULT_TIMEZONE;
         const replaceVars = (text: string) => {
           if (!text) return "";
           let res = text.split("{{output}}").join(lastOutput);
-          res = res.split("{{fecha}}").join(new Date().toLocaleDateString())
-                   .split("{{fecha_hora}}").join(new Date().toLocaleString())
+          res = res.split("{{fecha}}").join(formatDateInTz(new Date(), tz))
+                   .split("{{fecha_hora}}").join(formatDateTimeInTz(new Date(), tz))
                    .split("{{workflow_name}}").join(workflow.name);
           
           finishedSteps.forEach((s: any) => {
