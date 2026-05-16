@@ -541,6 +541,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                         <option value="groq">Groq</option>
                         <option value="deepseek">DeepSeek</option>
                         <option value="opencode">OpenCode Zen</option>
+                        <option value="local">Local PC (Raspberry)</option>
                       </select>
                     </div>
                     <div>
@@ -596,6 +597,11 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                               <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (x15)</option>
                               <option value="claude-opus-4-7">Claude Opus 4.7 (x75)</option>
                             </optgroup>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'local' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'local')) && (
+                          <>
+                            <option value="local-model">Local Model (PC)</option>
                           </>
                         )}
                       </select>

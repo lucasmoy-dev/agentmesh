@@ -170,6 +170,34 @@ export async function POST(
                 throw new Error(`OpenCode Error: ${errorMsg}`);
               }
               output = json.choices[0].message.content;
+            } else if (provider === 'local') {
+              console.log(` [LOCAL] Delegando prompt a dispositivo local...`);
+              // Ponemos el paso en espera para que el dispositivo local lo recoja
+              await db.executionStep.update({
+                where: { id: step.id },
+                data: { status: "WAITING_LOCAL", output: prompt }
+              });
+
+              // Esperamos a que el dispositivo local complete el paso
+              let localResult: string | null = null;
+              const startTime = Date.now();
+              const timeout = 10 * 60 * 1000; // 10 minutos de timeout máximo
+
+              while (!localResult) {
+                if (Date.now() - startTime > timeout) {
+                  throw new Error("Timeout esperando respuesta del dispositivo local (10 min)");
+                }
+
+                await new Promise(r => setTimeout(r, 2000));
+                const currentStep = await db.executionStep.findUnique({ where: { id: step.id } });
+                
+                if (currentStep?.status === "COMPLETED") {
+                  localResult = currentStep.output;
+                } else if (currentStep?.status === "FAILED") {
+                  throw new Error(currentStep.error || "Error en ejecución local");
+                }
+              }
+              output = localResult || "";
             } else {
               // Por defecto usamos Gemini
               if (!settings.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada en Ajustes.");

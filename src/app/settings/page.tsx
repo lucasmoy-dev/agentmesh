@@ -15,7 +15,8 @@ export default function SettingsPage() {
     SMTP_PORT: "587",
     SMTP_USER: "",
     SMTP_PASS: "",
-    SMTP_FROM: ""
+    SMTP_FROM: "",
+    LOCAL_PC_API_KEY: ""
   });
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -138,6 +139,7 @@ export default function SettingsPage() {
                   <option value="groq">Groq</option>
                   <option value="deepseek">DeepSeek</option>
                   <option value="opencode">OpenCode Zen</option>
+                  <option value="local">Local PC (Raspberry)</option>
                 </select>
               </div>
               <div>
@@ -186,6 +188,11 @@ export default function SettingsPage() {
                       <option value="big-pickle">Big Pickle (x1)</option>
                       <option value="claude-opus-4-7">Claude Opus 4.7 (x75)</option>
                       <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (x15)</option>
+                    </>
+                  )}
+                  {config.AI_DEFAULT_PROVIDER === 'local' && (
+                    <>
+                      <option value="local-model">Local Model (PC)</option>
                     </>
                   )}
                 </select>
@@ -240,6 +247,32 @@ export default function SettingsPage() {
                 placeholder="sk-..."
                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
               />
+            </div>
+
+            <div style={{ padding: '20px', backgroundColor: 'rgba(99, 102, 241, 0.05)', borderRadius: '14px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6366f1' }}>LOCAL PC / RASPBERRY API KEY</label>
+                <button 
+                  onClick={() => {
+                    const url = `${window.location.origin}/api/prompts/local-pc/prompt?apikey=${config.LOCAL_PC_API_KEY}`;
+                    navigator.clipboard.writeText(url);
+                    alert("¡URL copiada!");
+                  }}
+                  style={{ fontSize: '10px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
+                >
+                  <ExternalLink size={10} /> Copiar URL de Polling
+                </button>
+              </div>
+              <input 
+                type="password" 
+                value={config.LOCAL_PC_API_KEY} 
+                onChange={(e) => updateConfig('LOCAL_PC_API_KEY', e.target.value)}
+                placeholder="Ingresa una clave secreta para tu Raspberry"
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+              />
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+                Usa esta URL en tu Raspberry Pi para ejecutar prompts localmente.
+              </p>
             </div>
           </div>
         </div>
