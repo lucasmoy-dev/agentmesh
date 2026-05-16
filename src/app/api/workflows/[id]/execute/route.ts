@@ -48,6 +48,24 @@ export async function POST(
         if (alreadyProcessed) continue;
 
         const config = currentNode.config as any;
+        const finishedSteps = await db.executionStep.findMany({ where: { executionId: executionId!, status: "COMPLETED" } });
+        
+        const replaceVars = (text: string) => {
+          if (!text) return "";
+          let res = text.split("{{output}}").join(lastOutput);
+          res = res.split("{{fecha}}").join(new Date().toLocaleDateString())
+                   .split("{{fecha_hora}}").join(new Date().toLocaleString())
+                   .split("{{workflow_name}}").join(workflow.name);
+          
+          finishedSteps.forEach(s => {
+            const node = workflow.nodes.find((n: any) => n.id === s.nodeId);
+            if (node) {
+              const tag = `{{${node.name || node.type}}}`;
+              res = res.split(tag).join(s.output || "");
+            }
+          });
+          return res;
+        };
 
         // Si es un nodo de conversión (Converter), aplicar plantilla
         if (currentNode.type.toLowerCase().includes("converter") || currentNode.type.toLowerCase().includes("join")) {
@@ -108,7 +126,7 @@ export async function POST(
           let output = "";
 
           if (currentNode.type.toLowerCase().includes("gemini") || currentNode.type.toLowerCase() === "ai") {
-            const prompt = config.prompt.split("{{output}}").join(lastOutput);
+            const prompt = replaceVars(config.prompt || "");
             
             // Resolver Proveedor y Modelo
             let provider = config.aiProvider || 'default';
@@ -235,15 +253,6 @@ export async function POST(
                 secure: settings.SMTP_PORT === "465",
                 auth: { user: settings.SMTP_USER, pass: settings.SMTP_PASS }
               });
-
-              const replaceVars = (text: string) => {
-                if (!text) return "";
-                return text
-                  .split("{{output}}").join(lastOutput)
-                  .split("{{fecha}}").join(new Date().toLocaleDateString())
-                  .split("{{fecha_hora}}").join(new Date().toLocaleString())
-                  .split("{{workflow_name}}").join(workflow.name);
-              };
 
               const subject = replaceVars(config.subject || "Workflow Notification");
               const body = replaceVars(config.body || lastOutput);

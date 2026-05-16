@@ -607,7 +607,39 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                       </select>
                     </div>
                   </div>
-                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => {
+                          const current = (selectedNode.data.prompt as string) || "";
+                          updateNodeData(selectedNode.id, { prompt: current + " {{output}}" });
+                        }} 
+                        title="Output del nodo anterior" 
+                        style={{ padding: '2px 6px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '4px', color: '#a855f7', fontSize: '9px', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        Output
+                      </button>
+                      {/* Botones dinámicos para otros nodos */}
+                      {edges.filter(e => e.target === selectedNode.id).map(edge => {
+                        const sourceNode = nodes.find(n => n.id === edge.source);
+                        if (!sourceNode) return null;
+                        const nodeName = (sourceNode.data.name as string) || sourceNode.type || 'Nodo';
+                        return (
+                          <button 
+                            key={edge.id}
+                            onClick={() => {
+                              const current = (selectedNode.data.prompt as string) || "";
+                              updateNodeData(selectedNode.id, { prompt: current + ` {{${nodeName}}}` });
+                            }}
+                            style={{ padding: '2px 6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '4px', color: 'white', fontSize: '9px', cursor: 'pointer' }}
+                          >
+                            + {nodeName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <textarea style={{ width: '100%', height: '220px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>
               )}
