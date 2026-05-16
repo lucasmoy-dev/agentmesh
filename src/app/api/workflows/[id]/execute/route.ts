@@ -57,7 +57,7 @@ export async function POST(
                    .split("{{fecha_hora}}").join(new Date().toLocaleString())
                    .split("{{workflow_name}}").join(workflow.name);
           
-          finishedSteps.forEach(s => {
+          finishedSteps.forEach((s: any) => {
             const node = workflow.nodes.find((n: any) => n.id === s.nodeId);
             if (node) {
               const tag = `{{${node.name || node.type}}}`;
@@ -334,7 +334,7 @@ export async function POST(
           where: { id: executionId },
           data: { status: "FAILED" }
         });
-      } catch (dbErr) { console.error("Error updating execution status to FAILED", dbErr); }
+      } catch (dbErr: any) { console.error("Error updating execution status to FAILED", dbErr); }
     }
     
     return NextResponse.json({ success: false, error: error.message });
