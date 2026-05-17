@@ -39,10 +39,8 @@ export const WorkflowNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Sub-Workflow</div>
-        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {(data.subWorkflowName as string) || 'No seleccionado'}
-        </div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Sub-Workflow'}</div>
+        <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '2px' }}>{(data.subWorkflowId as string) || 'Sin asignar'}</div>
       </div>
 
       {!isExecuting && !isFinished && !isError && (

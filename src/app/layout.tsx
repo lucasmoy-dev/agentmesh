@@ -20,12 +20,12 @@ export default function RootLayout({
 }) {
   // Iniciamos el motor de triggers si estamos en el servidor
   if (typeof window === "undefined") {
-    // Usamos localhost:3000 por defecto en desarrollo si no hay origin
-    startScheduler("http://localhost:3000");
+    const port = process.env.PORT || "3000";
+    startScheduler(`http://localhost:${port}`);
   }
 
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <div className="layout-wrapper">
           {/* Sidebar */}

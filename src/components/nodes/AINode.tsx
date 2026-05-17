@@ -4,10 +4,22 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Brain, Settings2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
-export const GeminiNode = memo(({ data, isConnectable }: NodeProps) => {
+export const AINode = memo(({ data, isConnectable }: NodeProps) => {
   const isExecuting = data.isExecuting as boolean;
   const isFinished = data.isFinished as boolean;
   const isError = data.isError as boolean;
+  const provider = (data.aiProvider as string) || 'default';
+  const model = (data.aiModel as string) || 'default';
+
+  const getModelLabel = () => {
+    if (provider === 'default' && model === 'default') return 'Default';
+    if (model === 'default') return provider.charAt(0).toUpperCase() + provider.slice(1);
+    
+    // Simplificar nombres largos
+    return model.replace('gemini-', '').replace('llama-', '').replace('deepseek-', '').replace('opencode/', '');
+  };
+
+  const modelLabel = getModelLabel();
 
   return (
     <div style={{
@@ -39,7 +51,8 @@ export const GeminiNode = memo(({ data, isConnectable }: NodeProps) => {
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'Gemini AI'}</div>
+        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{(data.name as string) || 'AI'}</div>
+        <div style={{ fontSize: '9px', color: '#a855f7', fontWeight: 'bold', marginTop: '2px' }}>{modelLabel}</div>
         {isError && <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 'bold' }}>ERROR</div>}
       </div>
 
@@ -57,4 +70,4 @@ export const GeminiNode = memo(({ data, isConnectable }: NodeProps) => {
   );
 });
 
-GeminiNode.displayName = 'GeminiNode';
+AINode.displayName = 'AINode';

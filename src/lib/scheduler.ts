@@ -1,4 +1,5 @@
 import { db } from "./prisma";
+import { nowInTz, DEFAULT_TIMEZONE } from "./timezone";
 
 export type ScheduleType = "SINGLE" | "DAILY" | "WEEKLY" | "MONTHLY" | "ANNUALLY" | "INTERVAL";
 
@@ -26,13 +27,11 @@ export function calculateNextExecution(config: ScheduleConfig, from: Date = new 
     if (config.type === "DAILY") next.setDate(next.getDate() + 1);
     if (config.type === "WEEKLY" && config.days) {
       // Buscar el siguiente día de la semana
-      let found = false;
       for (let i = 1; i <= 7; i++) {
         const d = new Date(next);
         d.setDate(d.getDate() + i);
         if (config.days.includes(d.getDay())) {
           next.setDate(d.getDate());
-          found = true;
           break;
         }
       }
@@ -48,7 +47,14 @@ let schedulerStarted = false;
 
 export async function checkAndRunWorkflows(origin: string) {
   try {
-    const now = new Date();
+    // Leer la zona horaria configurada en los ajustes del sistema
+    const tzSetting = await db.systemSetting.findUnique({ where: { key: "TIMEZONE" } });
+    const tz = tzSetting?.value || DEFAULT_TIMEZONE;
+
+    // Usar la hora actual en la zona horaria del usuario (no UTC de Vercel)
+    const now = nowInTz(tz);
+    console.log(` [SCHEDULER] Hora local (${tz}): ${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`);
+
     const workflows = await db.workflow.findMany({
       where: { enabled: true },
       include: { nodes: true }

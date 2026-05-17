@@ -37,7 +37,7 @@ export async function GET() {
     });
     
     return NextResponse.json(config);
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: "No se pudo leer la configuración de la DB" }, { status: 500 });
   }
 }
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: "No se pudo guardar la configuración en la DB" }, { status: 500 });
   }
 }

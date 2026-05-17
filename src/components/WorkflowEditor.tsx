@@ -14,25 +14,32 @@ import {
   Panel,
   MarkerType,
   applyNodeChanges,
+  applyEdgeChanges,
   NodeChange,
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type } from 'lucide-react';
-import { GeminiNode } from './nodes/GeminiNode';
+import { Brain, Clock, Play, Save, Loader2, X, Database, Trash2, ChevronLeft, Edit3, GitBranch, Settings2, AlertCircle, Calendar, Mail, FlaskConical, Hash, Type, Merge, Bug, FileText } from 'lucide-react';
+import { AINode } from './nodes/AINode';
 import { TriggerNode } from './nodes/TriggerNode';
 import { GhostNode } from './nodes/GhostNode';
 import { StorageNode } from './nodes/StorageNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { EmailNode } from './nodes/EmailNode';
+import { ConverterNode } from './nodes/ConverterNode';
+import { DebugNode } from './nodes/DebugNode';
 
 const nodeTypes = { 
-  gemini: GeminiNode, 
+  gemini: AINode,
+  ai: AINode,
   trigger: TriggerNode, 
   ghost: GhostNode, 
   storage: StorageNode, 
   workflow: WorkflowNode,
-  email: EmailNode 
+  email: EmailNode,
+  converter: ConverterNode,
+  join: ConverterNode,
+  debug: DebugNode
 };
 
 const defaultEdgeOptions = {
@@ -50,6 +57,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [availableWorkflows, setAvailableWorkflows] = useState<any[]>([]);
+  const [defaultAiModel, setDefaultAiModel] = useState<string>('gemini');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,7 +66,10 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
   const [ghostMenu, setGhostMenu] = useState<{ x: number, y: number, parentId: string } | null>(null);
   
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [debugAlert, setDebugAlert] = useState<{ executionId: string, nodeId: string, content: string } | null>(null);
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
+  const selectedEdge = edges.find(e => e.id === selectedEdgeId) || null;
 
   const getRealNodes = (nds: Node[]) => nds.filter(n => n.type !== 'ghost');
   const getRealEdges = (eds: Edge[]) => eds.filter(e => !e.id.startsWith('ghost-edge'));
@@ -87,16 +98,18 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     setMounted(true);
     const loadData = async () => {
       try {
-        const [wfRes, listRes] = await Promise.all([fetch(`/api/workflows/${workflowId}`), fetch(`/api/workflows`)]);
+        const [wfRes, listRes, settingsRes] = await Promise.all([fetch(`/api/workflows/${workflowId}`), fetch(`/api/workflows`), fetch(`/api/settings`)]);
         const data = await wfRes.json();
         const listData = await listRes.json();
+        const settingsData = await settingsRes.json().catch(() => ({}));
+        if (settingsData.AI_DEFAULT_MODEL) setDefaultAiModel(settingsData.AI_DEFAULT_MODEL);
         setWorkflowName(data.name);
         setAvailableWorkflows(listData.filter((w: any) => w.id !== workflowId));
         let mappedNodes = data.nodes.map((n: any) => ({
           id: n.id,
           type: n.type.toLowerCase().includes('workflow') ? 'workflow' : n.type.toLowerCase(),
           position: { x: n.positionX, y: n.positionY },
-          data: { ...n.config, onEdit: () => setSelectedNodeId(n.id) },
+          data: { ...n.config, name: n.name || n.type, onEdit: () => setSelectedNodeId(n.id) },
         }));
         const mappedEdges = data.edges.map((e: any) => ({ id: e.id, source: e.sourceNodeId, target: e.targetNodeId, ...defaultEdgeOptions }));
         const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(mappedNodes, mappedEdges);
@@ -108,6 +121,18 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     loadData();
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [workflowId]);
+
+  const onEdgesChange = useCallback((changes: any) => {
+    setEdges((eds) => {
+      const updatedEdges = applyEdgeChanges(changes, eds) as any;
+      if (changes.some((c: any) => c.type === 'remove')) {
+        const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(nodes, updatedEdges);
+        setNodes(finalNodes);
+        return finalEdges;
+      }
+      return updatedEdges;
+    });
+  }, [nodes]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => {
@@ -123,7 +148,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
   const addNodeManual = (type: string) => {
     const id = `${type}-${Math.random().toString(36).substr(2, 9)}`;
-    const newNode: Node = { id, type, position: { x: 250, y: 150 }, data: { prompt: "", scheduleType: "MANUAL", onEdit: () => setSelectedNodeId(id) } };
+    const newNode: Node = { id, type, position: { x: 250, y: 150 }, data: { prompt: "", scheduleType: "MANUAL", aiModel: defaultAiModel, onEdit: () => setSelectedNodeId(id) } };
     setNodes((nds) => {
       const updated = [...getRealNodes(nds), newNode];
       const { nodes: finalNodes, edges: finalEdges } = refreshGhostNodes(updated, edges);
@@ -138,7 +163,7 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
     const id = `${type}-${Math.random().toString(36).substr(2, 9)}`;
     setNodes((nds) => {
       const realNodes = getRealNodes(nds);
-      const newNode: Node = { id, type, position: { x: x - 60, y: y - 60 }, data: { prompt: "", scheduleType: "MANUAL", onEdit: () => setSelectedNodeId(id) } };
+      const newNode: Node = { id, type, position: { x: x - 60, y: y - 60 }, data: { prompt: "", scheduleType: "MANUAL", aiModel: defaultAiModel, onEdit: () => setSelectedNodeId(id) } };
       const updatedNodes = [...realNodes, newNode];
       setEdges((eds) => {
         const realEdges = getRealEdges(eds);
@@ -180,52 +205,76 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
   const playWorkflow = async () => {
     if (isPlaying) return;
+    setIsPlaying(true); // Feedback instantáneo
     setIsSaving(true);
     try {
-      const activeNodes = getRealNodes(nodes);
+      const activeNodes = getRealNodes(nodes).map(n => {
+        const { isExecuting, isFinished, isError, lastExecutionOutput, onEdit, ...cleanData } = n.data;
+        return { ...n, data: cleanData };
+      });
       const activeEdges = getRealEdges(edges);
       await fetch(`/api/workflows/${workflowId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: workflowName, nodes: activeNodes, edges: activeEdges }) });
-    } catch (err) { console.error(err); } finally { setIsSaving(false); }
+    } catch (err) { 
+      console.error(err);
+      setIsPlaying(false);
+      setIsSaving(false);
+      return;
+    } finally { setIsSaving(false); }
 
-    setIsPlaying(true);
     try {
       const res = await fetch(`/api/workflows/${workflowId}/execute`, { method: 'POST' });
       const { executionId, success } = await res.json();
       if (!success) throw new Error("Error al iniciar ejecución");
 
       pollingRef.current = setInterval(async () => {
-        const statusRes = await fetch(`/api/executions/${executionId}`);
-        const data = await statusRes.json();
-        if (!data.success) return;
+        try {
+          const statusRes = await fetch(`/api/executions/${executionId}`);
+          const data = await statusRes.json();
+          if (!data.success) return;
 
-        setNodes(nds => nds.map(n => {
-          const step = data.steps.find((s: any) => s.nodeId === n.id);
-          if (!step) return n;
-          return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
-        }));
+          setNodes(nds => nds.map(n => {
+            const step = data.steps.find((s: any) => s.nodeId === n.id);
+            if (!step) return n;
+            
+            if (step.status === 'WAITING' && !debugAlert) {
+              setDebugAlert({ executionId, nodeId: n.id, content: step.output || '' });
+            }
 
-        setEdges(eds => eds.map(e => {
-          const sourceStep = data.steps.find((s: any) => s.nodeId === e.source);
-          if (sourceStep?.status === 'COMPLETED') return { ...e, style: { ...e.style, stroke: '#10b981', strokeWidth: 4 }, animated: true };
-          return e;
-        }));
+            return { ...n, data: { ...n.data, isExecuting: step.status === 'RUNNING' || step.status === 'WAITING', isFinished: step.status === 'COMPLETED', isError: step.status === 'FAILED', lastExecutionOutput: step.output } };
+          }));
 
-        if (data.status !== 'RUNNING') {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          setIsPlaying(false);
-          setTimeout(() => {
-            setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isExecuting: false, isFinished: false, isError: false } })));
-            setEdges(eds => eds.map(e => ({ ...e, ...defaultEdgeOptions })));
-          }, 10000);
+          setEdges(eds => eds.map(e => {
+            const sourceStep = data.steps.find((s: any) => s.nodeId === e.source);
+            if (sourceStep?.status === 'COMPLETED') return { ...e, style: { ...e.style, stroke: '#10b981', strokeWidth: 4 }, animated: true };
+            return e;
+          }));
+
+          if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            setIsPlaying(false);
+            setTimeout(() => {
+              setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isExecuting: false, isFinished: false, isError: false } })));
+              setEdges(eds => eds.map(e => ({ ...e, ...defaultEdgeOptions })));
+            }, 10000);
+          }
+        } catch (err) {
+          console.error("Error polling execution status:", err);
         }
-      }, 2000);
-    } catch (err: any) { alert(`Error: ${err.message}`); setIsPlaying(false); }
+      }, 1000);
+    } catch (err: any) { 
+      alert(`Error: ${err.message}`); 
+      setIsPlaying(false); 
+      setIsSaving(false);
+    }
   };
 
   const saveWorkflow = async () => {
     setIsSaving(true);
     try {
-      const activeNodes = getRealNodes(nodes);
+      const activeNodes = getRealNodes(nodes).map(n => {
+        const { isExecuting, isFinished, isError, lastExecutionOutput, onEdit, ...cleanData } = n.data;
+        return { ...n, data: cleanData };
+      });
       const activeEdges = getRealEdges(edges);
       await fetch(`/api/workflows/${workflowId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: workflowName, nodes: activeNodes, edges: activeEdges }) });
       setSelectedNodeId(null);
@@ -240,6 +289,12 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           <input type="text" value={workflowName} onChange={(e) => setWorkflowName(e.target.value)} style={{ backgroundColor: 'transparent', border: 'none', fontSize: '20px', fontWeight: 'bold', color: 'white', outline: 'none', width: '300px' }} />
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={() => setGhostMenu({ x: 100, y: 10, parentId: '' })}
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+          >
+            <Edit3 size={14} /> Agregar Nodo
+          </button>
           <button style={{ backgroundColor: isPlaying ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: isPlaying ? '#10b981' : 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={playWorkflow} disabled={isPlaying || isSaving}><Play size={14} fill="currentColor" /> {isPlaying ? 'En progreso...' : 'Probar'}</button>
           <button style={{ backgroundColor: '#6366f1', border: 'none', color: 'white', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={saveWorkflow} disabled={isSaving}><Save size={14} /> {isSaving ? 'Guardando...' : 'Guardar'}</button>
         </div>
@@ -247,16 +302,49 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
 
       <div style={{ flex: 1, position: 'relative', display: 'flex', overflow: 'hidden' }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onConnect={(p) => setNodes(refreshGhostNodes(nodes, addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges))).nodes)} onNodeClick={(e, n) => n.type !== 'ghost' && setSelectedNodeId(n.id)} onPaneClick={() => { setSelectedNodeId(null); setGhostMenu(null); }} nodeTypes={nodeTypes} colorMode="dark" fitView>
+          <ReactFlow 
+            nodes={nodes} 
+            edges={edges} 
+            onNodesChange={onNodesChange} 
+            onEdgesChange={onEdgesChange} 
+            onConnect={(p) => {
+              const newEdges = addEdge({ ...p, ...defaultEdgeOptions }, getRealEdges(edges));
+              setEdges(newEdges);
+              const { nodes: finalNodes } = refreshGhostNodes(nodes, newEdges);
+              setNodes(finalNodes);
+            }} 
+            onNodeClick={(e, n) => {
+              if (n.type !== 'ghost') {
+                setSelectedNodeId(n.id);
+                setSelectedEdgeId(null);
+                setGhostMenu(null);
+              }
+            }}
+            onEdgeClick={(e, edge) => {
+              setSelectedEdgeId(edge.id);
+              setSelectedNodeId(null);
+              setGhostMenu(null);
+            }}
+            onPaneClick={() => { 
+              setSelectedNodeId(null); 
+              setSelectedEdgeId(null);
+              setGhostMenu(null); 
+            }} 
+            nodeTypes={nodeTypes} 
+            colorMode="dark" 
+            fitView
+          >
             <Background variant={BackgroundVariant.Dots} gap={25} size={1} color="rgba(255,255,255,0.05)" />
             {ghostMenu && (
               <Panel position="top-left" style={{ position: 'absolute', left: ghostMenu.x, top: ghostMenu.y, zIndex: 1000 }}>
                 <div style={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {!ghostMenu.parentId && <button onClick={() => addNodeFromGhost('trigger')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Clock size={14} /> Trigger</button>}
-                  <button onClick={() => addNodeFromGhost('gemini')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '10px', color: '#a855f7', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Brain size={14} /> Gemini AI</button>
+                  <button onClick={() => addNodeFromGhost('gemini')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '10px', color: '#a855f7', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Brain size={14} /> AI</button>
                   <button onClick={() => addNodeFromGhost('email')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '10px', color: '#ec4899', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Mail size={14} /> Enviar Email</button>
-                  <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
+                   <button onClick={() => addNodeFromGhost('workflow')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '10px', color: '#34d399', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitBranch size={14} /> Sub-Workflow</button>
                   <button onClick={() => addNodeFromGhost('storage')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Database size={14} /> Guardar DB</button>
+                  <button onClick={() => addNodeFromGhost('converter')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><FileText size={14} /> Convertir Texto</button>
+                  <button onClick={() => addNodeFromGhost('debug')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 16px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '10px', color: '#f59e0b', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Bug size={14} /> Alert Debug</button>
                 </div>
               </Panel>
             )}
@@ -264,15 +352,68 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
           </ReactFlow>
         </div>
 
+        {/* MODAL DEBUG */}
+        {debugAlert && (
+          <div className="animate-fade-in" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
+            <div className="animate-modal-in" style={{ width: '100%', maxWidth: '600px', backgroundColor: '#18181b', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: '12px', borderRadius: '16px', color: '#f59e0b' }}>
+                  <Bug size={32} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>Debug Alert</h2>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>El proceso se ha detenido para que revises el contenido.</p>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '20px', maxHeight: '300px', overflowY: 'auto', marginBottom: '32px' }}>
+                <pre style={{ fontSize: '13px', color: '#f59e0b', fontFamily: 'monospace', whiteSpace: 'pre-wrap', margin: 0 }}>
+                  {debugAlert.content || 'Sin contenido...'}
+                </pre>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  onClick={async () => {
+                    await fetch(`/api/executions/${debugAlert.executionId}/confirm`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ nodeId: debugAlert.nodeId })
+                    });
+                    setDebugAlert(null);
+                  }}
+                  style={{ flex: 1, padding: '16px', backgroundColor: '#f59e0b', border: 'none', borderRadius: '16px', color: 'black', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
+                >
+                  Confirmar y Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {selectedNode && (
           <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
             <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Propiedades</h3>
-              <button onClick={() => setSelectedNodeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3 }}><X size={20} /></button>
+              <button onClick={() => setSelectedNodeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3, cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>NOMBRE DEL NODO</label>
+              <div style={{ position: 'relative' }}>
+                <Edit3 size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                <input 
+                  type="text" 
+                  value={selectedNode.data.name as string || ""} 
+                  onChange={(e) => updateNodeData(selectedNode.id, { name: e.target.value })} 
+                  placeholder="Ej: Buscar noticias..."
+                  style={{ width: '100%', padding: '12px 12px 12px 36px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '14px' }}
+                />
+              </div>
             </div>
             
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              {['gemini', 'workflow', 'email', 'storage'].includes(selectedNode.type || '') && (
+              {['gemini', 'ai', 'workflow', 'email', 'storage'].includes(selectedNode.type || '') && (
                 <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.15)', borderRadius: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: selectedNode.data.mockEnabled && selectedNode.type !== 'storage' ? '12px' : '0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -385,10 +526,121 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   )}
                 </div>
               )}
-              {selectedNode.type === 'gemini' && (
+              {(selectedNode.type === 'gemini' || selectedNode.type === 'ai') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
-                  <textarea style={{ width: '100%', height: '250px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>PROVEEDOR</label>
+                      <select
+                        style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
+                        value={(selectedNode.data.aiProvider as string) || 'default'}
+                        onChange={(e) => updateNodeData(selectedNode.id, { aiProvider: e.target.value, aiModel: 'default' })}
+                      >
+                        <option value="default">Default (Ajustes)</option>
+                        <option value="gemini">Gemini (Google)</option>
+                        <option value="groq">Groq</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="opencode">OpenCode Zen</option>
+                        <option value="local">Local PC (Raspberry)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7', display: 'block', marginBottom: '8px' }}>MODELO</label>
+                      <select
+                        style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }}
+                        value={(selectedNode.data.aiModel as string) || 'default'}
+                        onChange={(e) => updateNodeData(selectedNode.id, { aiModel: e.target.value })}
+                      >
+                        <option value="default">Default (Ajustes)</option>
+                        {(selectedNode.data.aiProvider === 'gemini' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'gemini')) && (
+                          <>
+                            <optgroup label="Gemini Frontier (3.1 / 3.0)">
+                              <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (x2)</option>
+                              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (x0.5)</option>
+                              <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (x2)</option>
+                              <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (x1)</option>
+                            </optgroup>
+                            <optgroup label="Gemini Stable (2.5 / 2.0)">
+                              <option value="gemini-2.5-pro">Gemini 2.5 Pro (x2)</option>
+                              <option value="gemini-2.5-flash">Gemini 2.5 Flash (x1)</option>
+                              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (x0.5)</option>
+                              <option value="gemini-2.0-flash">Gemini 2.0 Flash (x0.8)</option>
+                              <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (x0.5)</option>
+                            </optgroup>
+                            <optgroup label="Specialized / Open">
+                              <option value="deep-research-max-preview-04-2026">Deep Research Max (x20)</option>
+                              <option value="gemma-4-31b-it">Gemma 4 31B IT (x0.2)</option>
+                            </optgroup>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'groq' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'groq')) && (
+                          <>
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (x10)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B (x1)</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (x5)</option>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'deepseek' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'deepseek')) && (
+                          <>
+                            <option value="deepseek-chat">DeepSeek Chat (x1)</option>
+                            <option value="deepseek-reasoner">DeepSeek Reasoner (x5)</option>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'opencode' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'opencode')) && (
+                          <>
+                            <optgroup label="Coding">
+                              <option value="big-pickle">Big Pickle (x1)</option>
+                              <option value="stealth">Stealth (x1)</option>
+                            </optgroup>
+                            <optgroup label="Claude">
+                              <option value="claude-haiku-4-5">Claude Haiku 4.5 (x2)</option>
+                              <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (x15)</option>
+                              <option value="claude-opus-4-7">Claude Opus 4.7 (x75)</option>
+                            </optgroup>
+                          </>
+                        )}
+                        {(selectedNode.data.aiProvider === 'local' || (selectedNode.data.aiProvider === 'default' && defaultAiModel === 'local')) && (
+                          <>
+                            <option value="local-model">Local Model (PC)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#a855f7' }}>PROMPT</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => {
+                          const current = (selectedNode.data.prompt as string) || "";
+                          updateNodeData(selectedNode.id, { prompt: current + " {{output}}" });
+                        }} 
+                        title="Output del nodo anterior" 
+                        style={{ padding: '2px 6px', backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '4px', color: '#a855f7', fontSize: '9px', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        Output
+                      </button>
+                      {/* Botones dinámicos para otros nodos */}
+                      {edges.filter(e => e.target === selectedNode.id).map(edge => {
+                        const sourceNode = nodes.find(n => n.id === edge.source);
+                        if (!sourceNode) return null;
+                        const nodeName = (sourceNode.data.name as string) || sourceNode.type || 'Nodo';
+                        return (
+                          <button 
+                            key={edge.id}
+                            onClick={() => {
+                              const current = (selectedNode.data.prompt as string) || "";
+                              updateNodeData(selectedNode.id, { prompt: current + ` {{${nodeName}}}` });
+                            }}
+                            style={{ padding: '2px 6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '4px', color: 'white', fontSize: '9px', cursor: 'pointer' }}
+                          >
+                            + {nodeName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <textarea style={{ width: '100%', height: '220px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} value={(selectedNode.data.prompt as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })} />
                 </div>
               )}
               {selectedNode.type === 'workflow' && (
@@ -406,11 +658,76 @@ export default function WorkflowEditor({ workflowId }: { workflowId: string }) {
                   <input type="text" style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', color: 'white' }} value={(selectedNode.data.label as string) || ""} onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })} />
                 </div>
               )}
+              {(selectedNode.type?.toLowerCase().includes('converter') || selectedNode.type?.toLowerCase() === 'join') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6366f1', display: 'block', marginBottom: '8px' }}>PLANTILLA DE TEXTO</label>
+                    <div style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {edges.filter(e => e.target === selectedNode.id).map(edge => {
+                        const sourceNode = nodes.find(n => n.id === edge.source);
+                        if (!sourceNode) return null;
+                        const nodeName = (sourceNode.data.name as string) || sourceNode.type || 'Nodo';
+                        return (
+                          <button 
+                            key={edge.id}
+                            onClick={() => {
+                              const current = (selectedNode.data.template as string) || "";
+                              updateNodeData(selectedNode.id, { template: current + `{{${nodeName}}}` });
+                            }}
+                            style={{ padding: '6px 12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '8px', color: '#6366f1', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                          >
+                            + {nodeName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <textarea 
+                      placeholder="Usa los botones de arriba para combinar outputs..." 
+                      style={{ width: '100%', height: '200px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: 'white', fontSize: '13px' }} 
+                      value={(selectedNode.data.template as string) || ""} 
+                      onChange={(e) => updateNodeData(selectedNode.id, { template: e.target.value })} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
             <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button onClick={saveWorkflow} style={{ width: '100%', padding: '12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}>Guardar</button>
-              <button onClick={deleteSelectedNode} style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold' }}>Eliminar</button>
+              <button onClick={saveWorkflow} style={{ width: '100%', padding: '12px', backgroundColor: '#6366f1', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>Guardar</button>
+              <button onClick={deleteSelectedNode} style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}>Eliminar</button>
+            </div>
+          </div>
+        )}
+
+        {selectedEdge && (
+          <div style={{ width: '400px', backgroundColor: '#111114', borderLeft: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>Conexión</h3>
+              <button onClick={() => setSelectedEdgeId(null)} style={{ backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.3, cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px', flex: 1 }}>
+              <div style={{ backgroundColor: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                <GitBranch size={40} style={{ color: '#6366f1', marginBottom: '16px', opacity: 0.5 }} />
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.5' }}>Esta conexión une dos nodos del flujo. Puedes eliminarla para desconectar los procesos.</p>
+              </div>
+            </div>
+            
+            <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <button 
+                onClick={() => {
+                  setEdges((eds) => {
+                    const newEdges = eds.filter(e => e.id !== selectedEdgeId);
+                    const { nodes: finalNodes } = refreshGhostNodes(nodes, newEdges);
+                    setNodes(finalNodes);
+                    return newEdges;
+                  });
+                  setSelectedEdgeId(null);
+                }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Eliminar Conexión
+              </button>
             </div>
           </div>
         )}
