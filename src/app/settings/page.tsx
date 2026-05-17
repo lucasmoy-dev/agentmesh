@@ -25,13 +25,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch('/api/settings').then(res => res.json()).then(data => {
-      setConfig(prev => ({ 
-        ...prev, 
+      setConfig(prev => ({
+        ...prev,
         ...data,
         OPENCODE_API_KEY: data.OPENCODE_API_KEY || "sk-YIdYM3mzWm2wTIafjBsDdvFE7ucwOl0vkwaoPpJZyIgYfbUeOfxWc0o4qJPGiana"
       }));
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
+
 
   const saveSettings = async () => {
     setIsSaving(true);
@@ -61,10 +62,10 @@ export default function SettingsPage() {
       SMTP_HOST: "smtp.gmail.com",
       SMTP_PORT: "587"
     }));
-    
+
     // Abrir link en nueva pestaña
     window.open("https://myaccount.google.com/apppasswords?continue=https://myaccount.google.com/security", "_blank");
-    
+
     // Mostrar modal con instrucciones
     setShowGmailModal(true);
   };
@@ -86,7 +87,7 @@ export default function SettingsPage() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div className="glass-card" style={{ maxWidth: '500px', width: '100%', padding: '40px', position: 'relative', border: '1px solid rgba(255,255,255,0.1)' }}>
             <button onClick={() => setShowGmailModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: 'transparent', border: 'none', color: 'white', opacity: 0.5, cursor: 'pointer' }}><X size={24} /></button>
-            
+
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(234, 67, 53, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#ea4335' }}>
                 <Mail size={32} />
@@ -109,7 +110,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setShowGmailModal(false)}
               style={{ width: '100%', marginTop: '40px', padding: '16px', backgroundColor: '#6366f1', border: 'none', borderRadius: '14px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
             >
@@ -126,7 +127,7 @@ export default function SettingsPage() {
             <Brain size={20} className="text-purple-500" />
             <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>AI</h3>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
@@ -202,58 +203,58 @@ export default function SettingsPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>GEMINI API KEY</label>
-                <a 
-                  href="https://aistudio.google.com/app/rate-limit?timeRange=this-month" 
-                  target="_blank" 
+                <a
+                  href="https://aistudio.google.com/app/rate-limit?timeRange=this-month"
+                  target="_blank"
                   rel="noopener noreferrer"
                   style={{ fontSize: '10px', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
                 >
                   <ExternalLink size={10} /> Ver Uso y Cuota
                 </a>
               </div>
-              <input 
-                type="password" 
-                value={config.GEMINI_API_KEY} 
+              <input
+                type="password"
+                value={config.GEMINI_API_KEY}
                 onChange={(e) => updateConfig('GEMINI_API_KEY', e.target.value)}
                 placeholder="AIzaSy..."
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }}
               />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>GROQ API KEY</label>
-              <input 
-                type="password" 
-                value={config.GROQ_API_KEY} 
+              <input
+                type="password"
+                value={config.GROQ_API_KEY}
                 onChange={(e) => updateConfig('GROQ_API_KEY', e.target.value)}
                 placeholder="gsk_..."
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }}
               />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>DEEPSEEK API KEY</label>
-              <input 
-                type="password" 
-                value={config.DEEPSEEK_API_KEY} 
+              <input
+                type="password"
+                value={config.DEEPSEEK_API_KEY}
                 onChange={(e) => updateConfig('DEEPSEEK_API_KEY', e.target.value)}
                 placeholder="sk-..."
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }}
               />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '8px' }}>OPENCODE API KEY</label>
-              <input 
-                type="password" 
-                value={config.OPENCODE_API_KEY} 
+              <input
+                type="password"
+                value={config.OPENCODE_API_KEY}
                 onChange={(e) => updateConfig('OPENCODE_API_KEY', e.target.value)}
                 placeholder="sk-..."
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }}
               />
             </div>
 
             <div style={{ padding: '20px', backgroundColor: 'rgba(99, 102, 241, 0.05)', borderRadius: '14px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6366f1' }}>LOCAL PC / RASPBERRY API KEY</label>
-                <button 
+                <button
                   onClick={() => {
                     const url = `${window.location.origin}/api/prompts/local-pc/prompt?apikey=${config.LOCAL_PC_API_KEY}`;
                     navigator.clipboard.writeText(url);
@@ -264,12 +265,12 @@ export default function SettingsPage() {
                   <ExternalLink size={10} /> Copiar URL de Polling
                 </button>
               </div>
-              <input 
-                type="password" 
-                value={config.LOCAL_PC_API_KEY} 
+              <input
+                type="password"
+                value={config.LOCAL_PC_API_KEY}
                 onChange={(e) => updateConfig('LOCAL_PC_API_KEY', e.target.value)}
                 placeholder="Ingresa una clave secreta para tu Raspberry"
-                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }} 
+                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontFamily: 'monospace' }}
               />
               <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
                 Usa esta URL en tu Raspberry Pi para ejecutar prompts localmente.
@@ -285,14 +286,14 @@ export default function SettingsPage() {
               <Mail size={20} className="text-pink-500" />
               <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Email (SMTP)</h3>
             </div>
-            <button 
+            <button
               onClick={handleGmailSetup}
               style={{ padding: '6px 12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '10px', color: '#6366f1', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Send size={12} /> Configurar Gmail
             </button>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '12px' }}>
               <div style={{ flex: 3 }}>
