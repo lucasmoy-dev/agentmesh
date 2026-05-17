@@ -85,7 +85,7 @@ export default async function HomePage() {
                       <div className="flex items-center justify-end gap-3">
                         <WorkflowPlayButton workflowId={wf.id} />
                         <div className="h-6 w-px bg-white/10 mx-1" />
-                        <WorkflowActions id={wf.id} />
+                        <WorkflowActions id={wf.id} name={wf.name} />
                       </div>
                     </td>
                   </tr>
