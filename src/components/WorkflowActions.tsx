@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Settings, Trash2, ScrollText, X, Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle, Play, AlertCircle, Clock } from 'lucide-react';
+import { Settings, Trash2, ScrollText, X, Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle, Play, AlertCircle, Clock, Copy, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface WorkflowActionsProps {
@@ -17,6 +17,13 @@ export function WorkflowActions({ id, name }: WorkflowActionsProps) {
   const [executions, setExecutions] = useState<any[]>([]);
   const [nodes, setNodes] = useState<any[]>([]);
   const [expandedExecutions, setExpandedExecutions] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (text: string, stepId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(stepId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleDelete = async () => {
     if (!confirm(`¿Estás seguro de que quieres eliminar el workflow "${name}"?`)) return;
@@ -126,7 +133,7 @@ export function WorkflowActions({ id, name }: WorkflowActionsProps) {
             </div>
 
             {/* Contenido del Modal */}
-            <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-black/10">
+            <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-black/10 custom-scrollbar">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted">
                   <Loader2 className="animate-spin text-purple-500" size={36} />
@@ -246,8 +253,27 @@ export function WorkflowActions({ id, name }: WorkflowActionsProps) {
 
                                       {/* Consola del Paso */}
                                       {(step.output || step.error) && (
-                                        <div className="pl-4">
-                                          <div className="bg-black/60 border border-white/5 rounded-xl font-mono text-[11px] leading-relaxed p-4 max-h-56 overflow-y-auto select-text shadow-inner">
+                                        <div className="pl-4 relative group/console">
+                                          {/* Botón de Copiar Flotante */}
+                                          <button
+                                            onClick={() => handleCopy(step.error || step.output || "", step.id)}
+                                            className="absolute top-2.5 right-2.5 z-10 opacity-0 group-hover/console:opacity-100 transition-opacity duration-200 bg-black/60 hover:bg-white/10 p-1.5 rounded-lg text-white/70 hover:text-white flex items-center gap-1 shadow-md border border-white/5 backdrop-blur-sm"
+                                            title="Copiar logs al portapapeles"
+                                          >
+                                            {copiedId === step.id ? (
+                                              <>
+                                                <Check size={12} className="text-emerald-400" />
+                                                <span className="text-[9px] font-bold text-emerald-400 pr-1">¡Copiado!</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy size={12} />
+                                                <span className="text-[9px] font-bold text-white/60 pr-1">Copiar</span>
+                                              </>
+                                            )}
+                                          </button>
+
+                                          <div className="bg-black/60 border border-white/5 rounded-xl font-mono text-[11px] leading-relaxed p-4 max-h-[480px] overflow-y-auto select-text shadow-inner custom-scrollbar">
                                             {step.error && (
                                               <div className="text-red-400 whitespace-pre-wrap flex items-start gap-2">
                                                 <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
