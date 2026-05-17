@@ -71,3 +71,17 @@ export function formatDateTimeInTz(date: Date, tz: string = DEFAULT_TIMEZONE): s
     hour12: false,
   }).format(date);
 }
+
+/**
+ * Formatea solo la hora para mostrar al usuario en su zona horaria.
+ * Equivale a toLocaleTimeString() pero con la TZ correcta.
+ */
+export function formatTimeInTz(date: Date, tz: string = DEFAULT_TIMEZONE): string {
+  return new Intl.DateTimeFormat("es-MX", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+

@@ -4,20 +4,26 @@ import { Plus, GitBranch, Clock, Calendar } from "lucide-react";
 import { WorkflowPlayButton } from "@/components/WorkflowPlayButton";
 import { WorkflowActions } from "@/components/WorkflowActions";
 import { WorkflowToggle } from "@/components/WorkflowToggle";
+import { DEFAULT_TIMEZONE, formatDateInTz, formatTimeInTz } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const workflows = await db.workflow.findMany({
-    include: {
-      nodes: true,
-      executions: {
-        orderBy: { createdAt: 'desc' },
-        take: 1
-      }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  const [workflows, tzSetting] = await Promise.all([
+    db.workflow.findMany({
+      include: {
+        nodes: true,
+        executions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    }),
+    db.systemSetting.findUnique({ where: { key: "TIMEZONE" } })
+  ]);
+
+  const tz = tzSetting?.value || DEFAULT_TIMEZONE;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -52,7 +58,7 @@ export default async function HomePage() {
                       <div className="font-bold text-lg group-hover:text-purple-400 transition-colors">{wf.name}</div>
                       <div className="text-[10px] text-muted font-medium mt-1 flex items-center gap-1.5">
                         <Calendar size={10} />
-                        Creado {new Date(wf.createdAt).toLocaleDateString()}
+                        Creado {formatDateInTz(new Date(wf.createdAt), tz)}
                       </div>
                     </td>
                     <td className="p-6">
@@ -60,10 +66,10 @@ export default async function HomePage() {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
                             <Clock size={14} />
-                            {new Date(lastExecution.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatTimeInTz(new Date(lastExecution.createdAt), tz)}
                           </div>
                           <div className="text-[10px] text-muted font-medium">
-                            {new Date(lastExecution.createdAt).toLocaleDateString()}
+                            {formatDateInTz(new Date(lastExecution.createdAt), tz)}
                           </div>
                         </div>
                       ) : (
